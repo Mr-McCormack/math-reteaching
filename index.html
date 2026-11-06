@@ -71,12 +71,16 @@ body[data-tab=sheets] #printRoot{display:block}
 .sheet h1{font-size:19pt;margin:0}
 .sheet .meta{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:12px}
 .sheet .meta small{font-size:10pt;color:#444}
-.item{margin-bottom:16px;break-inside:auto}
+.item{margin-bottom:16px;break-inside:avoid}
+#sheets.onePer .item+.item{break-before:page}
+.prob.hasg .work{height:.7in}
 .item>h3{break-after:avoid;font-size:13pt;background:#eee;padding:3px 8px;margin:0 0 6px;border-left:5px solid #000}
 .tier{margin:6px 0 8px}.tl{break-after:avoid;font-size:9.5pt;text-transform:uppercase;letter-spacing:.05em;color:#444;font-weight:700;margin-bottom:2px}
 .prob{break-inside:avoid;margin-bottom:6px}
 .prob .q{display:flex;gap:8px}.prob .q b{min-width:1.6em}
-.work{height:1.25in}.work.big{height:1.7in}
+.work{height:1.05in}.work.big{height:1.4in}
+.worked.hasg{display:flex;gap:.15in;align-items:flex-start}.worked .wt{flex:1;min-width:0}.worked .graphs{margin:0;flex:0 0 auto}.worked .graphs svg{width:2.3in!important}
+.sheet .meta{break-after:avoid}
 .worked{border:1px solid #888;padding:6px 10px;border-radius:4px;background:#fafafa;break-inside:avoid}
 .worked ol{margin:4px 0 4px 1.2em;padding:0}.worked .a{font-weight:700;margin-top:4px}
 .sheet footer{margin-top:10px;font-size:9pt;color:#555;border-top:1px solid #aaa;padding-top:3px}
@@ -90,6 +94,8 @@ body[data-tab=sheets] #printRoot{display:block}
 .warnline{font-style:italic;color:#8a4b00}
 @media print{
   @page{margin:.5in}
+  .graphs svg{width:2.3in!important}
+  .graphs.one svg{width:2.4in!important}
   body{background:#fff}
   body>*:not(#printRoot){display:none!important}
   #printRoot{display:block!important}
@@ -270,7 +276,7 @@ function viewSheets(){
   h += '<label>Challenge <input type="number" min="0" max="3" style="width:58px" data-ch="cnt" data-t="challenge" value="' + k.challenge + '"></label></div>';
   h += '<div class="row" style="margin-top:8px"><label>Student <select data-ch="who"><option value="">All students</option>' + c.roster.filter((s) => s.missed.length).map((s) => '<option' + (state.ui.who === s.name ? ' selected' : '') + '>' + esc(s.name) + '</option>').join('') + '</select></label>';
   h += '<label>Set code <input type="text" size="9" data-ch="setCode" value="' + esc(t.setCode) + '"></label><button class="btn sm" data-act="newSet">New set of numbers</button>';
-  h += '<span class="grow"></span><button class="btn pri" data-act="print" data-w="sheets">Print student sheets</button><button class="btn" data-act="print" data-w="keys">Print answer keys</button></div>';
+  h += '<label>Page breaks <select data-ch="pageMode"><option value="keep"' + (state.ui.pageMode !== 'one' ? ' selected' : '') + '>Keep each item together</option><option value="one"' + (state.ui.pageMode === 'one' ? ' selected' : '') + '>Start every item on a new page</option></select></label><span class="grow"></span><button class="btn pri" data-act="print" data-w="sheets">Print student sheets</button><button class="btn" data-act="print" data-w="keys">Print answer keys</button></div>';
   h += '<p class="muted">Same set code + same student = the same sheet every time, so a lost sheet can be reprinted. Change the code for a retake.</p></div>';
   // groups
   const groups = {};
@@ -304,10 +310,10 @@ function buildSheets(){
         sh += '<div class="tier"><div class="tl">' + esc(tr.label) + '</div>';
         tr.problems.forEach((pr) => {
           if (tr.tier === 'worked') {
-            sh += '<div class="worked"><div>' + rich(pr.prompt) + '</div>' + graphsHTML(pr.graphs) + (pr.steps.length ? '<ol>' + pr.steps.map((s) => '<li>' + rich(s) + '</li>').join('') + '</ol>' : '') + '<div class="a">Answer: ' + kx(pr.answer) + '</div></div>';
+            sh += '<div class="worked' + (pr.graphs && pr.graphs.length ? ' hasg' : '') + '"><div class="wt"><div>' + rich(pr.prompt) + '</div>' + (pr.steps.length ? '<ol>' + pr.steps.map((s) => '<li>' + rich(s) + '</li>').join('') + '</ol>' : '') + '<div class="a">Answer: ' + kx(pr.answer) + '</div></div>' + graphsHTML(pr.graphs) + '</div>';
           } else {
             const lab = it.n + L[k++];
-            sh += '<div class="prob"><div class="q"><b>' + esc(lab) + '.</b><div>' + rich(pr.prompt) + graphsHTML(pr.graphs) + '</div></div><div class="work' + (tr.tier === 'challenge' ? ' big' : '') + '"></div></div>';
+            sh += '<div class="prob' + (pr.graphs && pr.graphs.length ? ' hasg' : '') + '"><div class="q"><b>' + esc(lab) + '.</b><div>' + rich(pr.prompt) + graphsHTML(pr.graphs) + '</div></div><div class="work' + (tr.tier === 'challenge' ? ' big' : '') + '"></div></div>';
             keyline += '<span><b>' + esc(lab) + '</b> ' + kx(pr.answer) + '</span>';
           }
         });
@@ -320,6 +326,7 @@ function buildSheets(){
     ky += '</section>';
   });
   $('#sheets').innerHTML = sh;
+  $('#sheets').classList.toggle('onePer', state.ui.pageMode === 'one');
   $('#keys').innerHTML = pk.length ? '<div style="max-width:8.5in;margin:0 auto 10px"><h2 style="margin:0">Answer keys (teacher copy)</h2></div>' + ky : '';
 }
 
@@ -585,6 +592,7 @@ const C = {
   itemSkill(el){ curTest().items[+el.dataset.i].skill = el.value; },
   miss(el){ const s = curClass().roster[+el.dataset.s], n = el.dataset.n, k = s.missed.indexOf(n); if (el.checked && k < 0) s.missed.push(n); if (!el.checked && k >= 0) s.missed.splice(k, 1); save(); const sc = $('.gridwrap'), l = sc.scrollLeft, tp = sc.scrollTop; $('#gridbox').innerHTML = gridHTML(curTest(), curClass()); const n2 = $('.gridwrap'); n2.scrollLeft = l; n2.scrollTop = tp; return 'noRender'; },
   cnt(el){ state.counts[el.dataset.t] = Math.max(0, +el.value || 0); },
+  pageMode(el){ state.ui.pageMode = el.value; },
   who(el){ state.ui.who = el.value; },
   setCode(el){ curTest().setCode = el.value.trim() || 'A'; },
   showHidden(el){ state.ui.showHidden = el.checked; },
