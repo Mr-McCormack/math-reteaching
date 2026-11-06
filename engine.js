@@ -257,6 +257,19 @@
     return { specs, derived, constraints };
   }
 
+  // Graph specs: every number may be a number or a formula string (evaluated like "derived").
+  // { label, view:[xmin,xmax,ymin,ymax]|null, blank, curves:[{type:'quad',a,h,k}|{type:'line',m,b}, style], points:[{x,y,label}] }
+  function resolveGraphs(specs, env) {
+    const N = (v) => (typeof v === 'number' ? v : evalFormula(String(v), env).num());
+    return (specs || []).map((sp) => ({
+      label: sp.label || '',
+      blank: !!sp.blank,
+      view: sp.view ? sp.view.map(N) : null,
+      curves: (sp.curves || []).map((c) => { const o = { type: c.type, style: c.style || 'solid' }; ['a', 'h', 'k', 'm', 'b'].forEach((k) => { if (c[k] !== undefined) o[k] = N(c[k]); }); return o; }),
+      points: (sp.points || []).map((p) => ({ x: N(p.x), y: N(p.y), label: p.label || '' })),
+    }));
+  }
+
   function generate(tpl, seed) {
     const c = compile(tpl);
     const rng = makeRng(String(seed) + '|' + (tpl.id || tpl.prompt));
@@ -274,6 +287,7 @@
         prompt: substitute(tpl.prompt, env),
         answer: substitute(tpl.answer || '', env),
         steps: (tpl.steps || []).map((s) => substitute(s, env)),
+        graphs: resolveGraphs(tpl.graphs, env),
       };
     }
     throw new Error('Could not find numbers that satisfy the constraints for template "' + (tpl.id || tpl.prompt) + '"');

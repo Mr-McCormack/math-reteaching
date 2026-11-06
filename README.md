@@ -40,5 +40,9 @@ T('two-step', 'parallel', 'Solve for $x$: $ {{a:coef}}x{{b:sign}} = {{c}} $', 'x
 ```
 Kinds: `worked`, `easier`, `parallel`, `challenge`. Run `node tools/verify-bank.js` to check every template (needs Node, optional).
 
+## Graph questions
+A template can include a `graphs` list and the app draws it (parabolas and lines, with marked points and an auto-chosen window). Numbers are formulas from the template's `params`, so the picture always matches the answer. See `bank/quadratics_graphs.js`. Graphs are set in the bank files, not in the question editor. Editing a graph question in the editor keeps its graph.
+`node tools/verify-graphs.js` re-checks every graph answer against the curve that is drawn.
+
 ## Files
-`index.html` app · `engine.js` problem generator · `sheets.js` sheet builder · `bank/` questions · `vendor/katex/` math display (MIT) · `tools/` optional tests
+`index.html` app · `engine.js` problem generator · `graphs.js` graph drawing · `sheets.js` sheet builder · `bank/` questions · `vendor/katex/` math display (MIT) · `tools/` optional tests

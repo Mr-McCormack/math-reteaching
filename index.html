@@ -72,8 +72,8 @@ body[data-tab=sheets] #printRoot{display:block}
 .sheet .meta{display:flex;justify-content:space-between;border-bottom:2px solid #000;padding-bottom:4px;margin-bottom:12px}
 .sheet .meta small{font-size:10pt;color:#444}
 .item{margin-bottom:16px;break-inside:auto}
-.item>h3{font-size:13pt;background:#eee;padding:3px 8px;margin:0 0 6px;border-left:5px solid #000}
-.tier{margin:6px 0 8px}.tl{font-size:9.5pt;text-transform:uppercase;letter-spacing:.05em;color:#444;font-weight:700;margin-bottom:2px}
+.item>h3{break-after:avoid;font-size:13pt;background:#eee;padding:3px 8px;margin:0 0 6px;border-left:5px solid #000}
+.tier{margin:6px 0 8px}.tl{break-after:avoid;font-size:9.5pt;text-transform:uppercase;letter-spacing:.05em;color:#444;font-weight:700;margin-bottom:2px}
 .prob{break-inside:avoid;margin-bottom:6px}
 .prob .q{display:flex;gap:8px}.prob .q b{min-width:1.6em}
 .work{height:1.25in}.work.big{height:1.7in}
@@ -81,6 +81,12 @@ body[data-tab=sheets] #printRoot{display:block}
 .worked ol{margin:4px 0 4px 1.2em;padding:0}.worked .a{font-weight:700;margin-top:4px}
 .sheet footer{margin-top:10px;font-size:9pt;color:#555;border-top:1px solid #aaa;padding-top:3px}
 .keysheet h2{font-size:14pt;margin:0 0 4px}.keysheet .k{display:flex;flex-wrap:wrap;gap:4px 22px;margin-bottom:8px}.keysheet .k span{white-space:nowrap}
+.graphs{display:flex;gap:.18in;flex-wrap:wrap;margin:6px 0 2px}
+.graphs figure{margin:0;text-align:center;break-inside:avoid}
+.graphs svg{width:3.15in;height:auto;display:block}
+.graphs.one svg{width:3.4in}
+.graphs figcaption{font-weight:700;font-size:10.5pt}
+.tcard .graphs svg,.preview .graphs svg{width:200px}
 .warnline{font-style:italic;color:#8a4b00}
 @media print{
   @page{margin:.5in}
@@ -112,6 +118,7 @@ body[data-tab=sheets] #printRoot{display:block}
 <script src="vendor/katex/katex.min.js"></script>
 <script src="engine.js"></script>
 <script src="sheets.js"></script>
+<script src="graphs.js"></script>
 <script src="bank/dsl.js"></script>
 <!-- Question bank files. To add your own, copy one of these, edit it, and add a line here. -->
 <script src="bank/equations.js"></script>
@@ -121,6 +128,7 @@ body[data-tab=sheets] #printRoot{display:block}
 <script src="bank/factoring.js"></script>
 <script src="bank/other.js"></script>
 <script src="bank/quadratics.js"></script>
+<script src="bank/quadratics_graphs.js"></script>
 <script>
 (function(){
 'use strict';
@@ -159,6 +167,7 @@ function skillOptions(sel){
 /* ---------------- rendering math ---------------- */
 function kx(s, display){ try { return katex.renderToString(s, { throwOnError:false, displayMode:!!display, strict:'ignore' }); } catch(e){ return '<code>' + esc(s) + '</code>'; } }
 const fmtText = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+const graphsHTML = (gs) => gs && gs.length ? '<div class="graphs' + (gs.length === 1 ? ' one' : '') + '">' + gs.map((g) => '<figure>' + ReteachGraphs.svg(g) + (g.label ? '<figcaption>' + esc(g.label) + '</figcaption>' : '') + '</figure>').join('') + '</div>' : '';
 const rich = (str) => E.splitMath(str).map((g) => g.type === 'math' ? kx(g.s) : fmtText(g.s)).join('');
 
 /* ---------------- current objects ---------------- */
@@ -295,10 +304,10 @@ function buildSheets(){
         sh += '<div class="tier"><div class="tl">' + esc(tr.label) + '</div>';
         tr.problems.forEach((pr) => {
           if (tr.tier === 'worked') {
-            sh += '<div class="worked"><div>' + rich(pr.prompt) + '</div>' + (pr.steps.length ? '<ol>' + pr.steps.map((s) => '<li>' + rich(s) + '</li>').join('') + '</ol>' : '') + '<div class="a">Answer: ' + kx(pr.answer) + '</div></div>';
+            sh += '<div class="worked"><div>' + rich(pr.prompt) + '</div>' + graphsHTML(pr.graphs) + (pr.steps.length ? '<ol>' + pr.steps.map((s) => '<li>' + rich(s) + '</li>').join('') + '</ol>' : '') + '<div class="a">Answer: ' + kx(pr.answer) + '</div></div>';
           } else {
             const lab = it.n + L[k++];
-            sh += '<div class="prob"><div class="q"><b>' + esc(lab) + '.</b><div>' + rich(pr.prompt) + '</div></div><div class="work' + (tr.tier === 'challenge' ? ' big' : '') + '"></div></div>';
+            sh += '<div class="prob"><div class="q"><b>' + esc(lab) + '.</b><div>' + rich(pr.prompt) + graphsHTML(pr.graphs) + '</div></div><div class="work' + (tr.tier === 'challenge' ? ' big' : '') + '"></div></div>';
             keyline += '<span><b>' + esc(lab) + '</b> ' + kx(pr.answer) + '</span>';
           }
         });
@@ -339,7 +348,7 @@ function viewBank(){
   list.forEach((t) => {
     const hidden = state.bank.hidden.includes(t.id);
     let body;
-    try { const g = E.generate(t, 'preview' + (previewN[t.id] || 0)); body = '<div class="math">' + rich(g.prompt) + '</div><div class="muted">Answer: ' + kx(g.answer) + '</div>'; } catch (e) { body = '<div class="err">' + esc(e.message) + '</div>'; }
+    try { const g = E.generate(t, 'preview' + (previewN[t.id] || 0)); body = '<div class="math">' + rich(g.prompt) + '</div>' + graphsHTML(g.graphs) + '<div class="muted">Answer: ' + kx(g.answer) + '</div>'; } catch (e) { body = '<div class="err">' + esc(e.message) + '</div>'; }
     h += '<div class="tcard" style="' + (hidden ? 'opacity:.5' : '') + '"><div class="row"><span class="pill">' + TIER_NAME[t.tier] + '</span>' + (t.custom ? '<span class="pill">mine</span>' : '') + (t.shared ? '<span class="pill">shared</span>' : '') + (t.overridden ? '<span class="pill warn">edited</span>' : '') + '<span class="grow"></span>';
     h += '<button class="btn sm" data-act="reroll" data-id="' + esc(t.id) + '">New numbers</button>';
     if (!t.shared) h += '<button class="btn sm" data-act="editTpl" data-id="' + esc(t.id) + '">Edit</button>';
@@ -479,6 +488,7 @@ function drawChips(){
 function currentTemplate(){
   const f = ed.fields, t = { skill:$('#e-skill').value, tier:$('#e-tier').value, prompt:f.prompt.get(), answer:f.answer.get() };
   const steps = f.steps.map((s) => s.get()).filter((s) => s.trim()); if (steps.length) t.steps = steps;
+  if (ed.t.graphs) t.graphs = ed.t.graphs; // graph specs are kept as-is (set in the bank files)
   if (ed.random) {
     const kv = (txt) => { const o = {}; txt.split('\n').forEach((l) => { const i = l.indexOf('='); if (i > 0 && l.trim()) o[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); return o; };
     t.params = kv($('#e-params').value); t.derived = kv($('#e-derived').value);
@@ -497,7 +507,7 @@ function refreshPreview(){
   if (!errs.length) {
     const probe = Object.assign({ id:'preview' }, t);
     errs.push.apply(errs, E.validateTemplate(probe, 12));
-    if (!errs.length) { const g = E.generate(probe, 'ed' + edSeed); prev = '<div>' + rich(g.prompt) + '</div><div class="muted" style="margin-top:6px">Answer: ' + kx(g.answer) + '</div>' + (g.steps.length ? '<ol class="muted">' + g.steps.map((s) => '<li>' + rich(s) + '</li>').join('') + '</ol>' : ''); }
+    if (!errs.length) { const g = E.generate(probe, 'ed' + edSeed); prev = '<div>' + rich(g.prompt) + '</div>' + graphsHTML(g.graphs) + '<div class="muted" style="margin-top:6px">Answer: ' + kx(g.answer) + '</div>' + (g.steps.length ? '<ol class="muted">' + g.steps.map((s) => '<li>' + rich(s) + '</li>').join('') + '</ol>' : ''); }
   }
   $('#e-prev').innerHTML = prev || '<span class="muted">—</span>';
   $('#e-err').textContent = errs.join(' · ');
