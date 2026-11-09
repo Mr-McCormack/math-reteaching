@@ -65,6 +65,14 @@ dialog::backdrop{background:rgba(20,25,40,.45)}
 #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#1d2430;color:#fff;padding:9px 16px;border-radius:99px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:20}
 #toast.on{opacity:1}
 /* printable sheets (screen look) */
+.cp{display:inline-block;font-size:11px;padding:0 6px;border-radius:5px;margin-right:3px;font-weight:600;background:#eee;color:#444}
+.cp.c7{background:#e3f4ea;color:#14663a}.cp.c8{background:#e6eefc;color:#1d4fb8}.cp.cA1{background:#fdf0dc;color:#9a5a00}.cp.cAA{background:#f1e6fb;color:#6a2fa3}
+.dmg{border-left:4px solid var(--brand)}.dmsk{display:flex;gap:8px;align-items:baseline;padding:3px 0;border-bottom:1px dashed var(--line)}
+.dmsk.off .nm{text-decoration:line-through;color:var(--mute)}.dmsk .nm{flex:1}
+.chip{display:inline-flex;align-items:center;gap:4px;background:#f2f4f7;border:1px solid var(--line);border-radius:99px;padding:1px 4px 1px 9px;margin:2px 4px 2px 0;font-size:13px}
+.chip button{border:0;background:none;cursor:pointer;color:var(--mute);font-size:14px;padding:0 4px}
+.dmline{margin-top:6px;font-size:11.5px;color:#333;border-top:1px dotted #999;padding-top:3px}
+.dmres{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:8px}.dmres .r{display:flex;gap:8px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--line)}.dmres .r .nm{flex:1}
 #printRoot{display:none}
 body[data-tab=sheets] #printRoot{display:block}
 .sheet,.keysheet{background:#fff;border:1px solid var(--line);border-radius:6px;padding:.55in .6in;margin:0 auto 18px;max-width:8.5in;font-size:12pt;line-height:1.35;color:#000}
@@ -105,6 +113,7 @@ body[data-tab=sheets] #printRoot{display:block}
   body[data-print=sheets] #keys{display:none}
   body[data-print=keys] #sheets{display:none}
 }
+@media print{.dmline{color:#000}}
 </style>
 </head>
 <body data-tab="tests">
@@ -125,6 +134,9 @@ body[data-tab=sheets] #printRoot{display:block}
 <script src="engine.js"></script>
 <script src="sheets.js"></script>
 <script src="graphs.js"></script>
+<script src="deltamath/skills.js"></script>
+<script src="deltamath/map.js"></script>
+<script src="deltamath/dm.js"></script>
 <script src="bank/dsl.js"></script>
 <!-- Question bank files. To add your own, copy one of these, edit it, and add a line here. -->
 <script src="bank/equations.js"></script>
@@ -138,7 +150,7 @@ body[data-tab=sheets] #printRoot{display:block}
 <script>
 (function(){
 'use strict';
-const E = ReteachEngine, S = ReteachSheets;
+const E = ReteachEngine, S = ReteachSheets, DM = ReteachDM;
 const LS_KEY = 'reteach.v1';
 const $ = (s, r) => (r || document).querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -148,7 +160,7 @@ const TIER_NAME = { worked:'Worked example', easier:'Warm-up (easier)', parallel
 
 /* ---------------- state ---------------- */
 let state = defaults(), shared = { skills: [], templates: [] }, storageOK = true;
-function defaults(){ return { tests: [], bank: { custom: [], hidden: [], over: {}, skills: [] }, counts: { worked:1, easier:1, parallel:2, challenge:0 }, ui: { tab:'tests', testId:null, classId:null, bankSkill:null, tierFilter:'all', showHidden:false } }; }
+function defaults(){ return { tests: [], bank: { custom: [], hidden: [], over: {}, skills: [] }, counts: { worked:1, easier:1, parallel:2, challenge:0 }, dm: { map: {} }, ui: { tab:'tests', testId:null, classId:null, bankSkill:null, tierFilter:'all', showHidden:false } }; }
 function load(){ try { const raw = localStorage.getItem(LS_KEY); if (raw) state = Object.assign(defaults(), JSON.parse(raw)); } catch(e){ storageOK = false; } }
 function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){ storageOK = false; } }
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2600); }
@@ -186,7 +198,7 @@ function ensureSelection(){
 }
 
 /* ---------------- tabs ---------------- */
-const TABS = [['tests','1 · Tests'],['grid','2 · Mark misses'],['sheets','3 · Print sheets'],['bank','Question bank']];
+const TABS = [['tests','1 · Tests'],['grid','2 · Mark misses'],['sheets','3 · Print sheets'],['dm','4 · DeltaMath'],['bank','Question bank']];
 function render(){
   try { renderInner(); } catch (e) {
     console.error(e);
@@ -196,6 +208,7 @@ function render(){
 function health(){
   const miss = [];
   if (typeof katex === 'undefined') miss.push('vendor/katex/katex.min.js');
+  if (typeof ReteachDM === 'undefined' || typeof DMINV === 'undefined') miss.push('the deltamath/ folder');
   if (typeof RB === 'undefined' || !RB.skills.length) miss.push('the bank/ folder (no questions loaded)');
   return miss.length ? 'These files did not load from your site: ' + miss.join(', ') + '. Re-upload the whole folder, keeping the subfolders.' : '';
 }
@@ -203,9 +216,10 @@ function renderInner(){
   ensureSelection();
   document.body.dataset.tab = state.ui.tab;
   $('#nav').innerHTML = TABS.map(([k, n]) => '<button data-act="tab" data-k="' + k + '" class="' + (state.ui.tab === k ? 'on' : '') + '">' + n + '</button>').join('');
-  const v = { tests:viewTests, grid:viewGrid, sheets:viewSheets, bank:viewBank }[state.ui.tab];
+  const v = { tests:viewTests, grid:viewGrid, sheets:viewSheets, dm:viewDM, bank:viewBank }[state.ui.tab];
   $('#app').innerHTML = (storageOK ? '' : '<div class="notice">This browser is blocking saved data, so nothing will be kept after you close the page. Use “Back up everything” before you leave.</div>') + v();
   if (state.ui.tab === 'sheets') buildSheets(); else { $('#sheets').innerHTML = ''; $('#keys').innerHTML = ''; }
+  if (state.ui.tab === 'dm' && state.ui.dmView === 'inv') updateInvResults();
 }
 function testPicker(){
   if (!state.tests.length) return '';
@@ -224,13 +238,13 @@ function viewTests(){
      : '<p class="muted">Make a test, then tell the tool which skill each question item checks. That is the only setup. Colleagues can import the same test file so everyone uses common assessments.</p>';
   h += '</div>';
   if (t) {
-    const missing = t.items.filter((i) => !i.skill).length;
+    const missing = t.items.filter((i) => !i.skill && !(i.dm && i.dm.length)).length;
     h += '<div class="card"><div class="row"><label><b>Test name</b> <input type="text" data-ch="testName" value="' + esc(t.name) + '" size="32"></label>';
     h += '<span class="grow"></span><label>Add <input type="number" id="addN" min="1" max="60" value="5" style="width:64px"> more items</label><button class="btn" data-act="addItems">Add</button></div>';
     if (missing) h += '<p class="notice" style="margin-top:10px">' + missing + ' item(s) still need a skill. Students who miss them will get a note instead of practice problems.</p>';
-    h += '<table class="items" style="margin-top:8px"><thead><tr><th>Item #</th><th>Skill it tests</th><th></th></tr></thead><tbody>';
-    t.items.forEach((it, i) => { h += '<tr><td><input type="text" size="5" data-ch="itemN" data-i="' + i + '" value="' + esc(it.n) + '"></td><td><select data-ch="itemSkill" data-i="' + i + '">' + skillOptions(it.skill) + '</select></td><td><button class="btn sm danger" data-act="delItem" data-i="' + i + '">✕</button></td></tr>'; });
-    h += '</tbody></table><p class="muted">Item numbers can be anything you write on the paper test, like 7 or 12b.</p></div>';
+    h += '<table class="items" style="margin-top:8px"><thead><tr><th>Item #</th><th>Skill it tests</th><th>DeltaMath skills</th><th></th></tr></thead><tbody>';
+    t.items.forEach((it, i) => { h += '<tr><td><input type="text" size="5" data-ch="itemN" data-i="' + i + '" value="' + esc(it.n) + '"></td><td><select data-ch="itemSkill" data-i="' + i + '">' + skillOptions(it.skill) + '</select></td><td>' + itemDmCell(it, i) + '</td><td><button class="btn sm danger" data-act="delItem" data-i="' + i + '">✕</button></td></tr>'; });
+    h += '</tbody></table><p class="muted">Item numbers can be anything you write on the paper test, like 7 or 12b. An item can use a bank skill, DeltaMath skills only, or both.</p></div>';
   }
   return h;
 }
@@ -276,7 +290,7 @@ function viewSheets(){
   h += '<label>Challenge <input type="number" min="0" max="3" style="width:58px" data-ch="cnt" data-t="challenge" value="' + k.challenge + '"></label></div>';
   h += '<div class="row" style="margin-top:8px"><label>Student <select data-ch="who"><option value="">All students</option>' + c.roster.filter((s) => s.missed.length).map((s) => '<option' + (state.ui.who === s.name ? ' selected' : '') + '>' + esc(s.name) + '</option>').join('') + '</select></label>';
   h += '<label>Set code <input type="text" size="9" data-ch="setCode" value="' + esc(t.setCode) + '"></label><button class="btn sm" data-act="newSet">New set of numbers</button>';
-  h += '<label>Page breaks <select data-ch="pageMode"><option value="keep"' + (state.ui.pageMode !== 'one' ? ' selected' : '') + '>Keep each item together</option><option value="one"' + (state.ui.pageMode === 'one' ? ' selected' : '') + '>Start every item on a new page</option></select></label><span class="grow"></span><button class="btn pri" data-act="print" data-w="sheets">Print student sheets</button><button class="btn" data-act="print" data-w="keys">Print answer keys</button></div>';
+  h += '<label>Page breaks <select data-ch="pageMode"><option value="keep"' + (state.ui.pageMode !== 'one' ? ' selected' : '') + '>Keep each item together</option><option value="one"' + (state.ui.pageMode === 'one' ? ' selected' : '') + '>Start every item on a new page</option></select></label><label><input type="checkbox" data-ch="dmLine"' + (state.ui.dmLine ? ' checked' : '') + '> Add “assign on DeltaMath” line</label><span class="grow"></span><button class="btn pri" data-act="print" data-w="sheets">Print student sheets</button><button class="btn" data-act="print" data-w="keys">Print answer keys</button></div>';
   h += '<p class="muted">Same set code + same student = the same sheet every time, so a lost sheet can be reprinted. Change the code for a retake.</p></div>';
   // groups
   const groups = {};
@@ -319,6 +333,7 @@ function buildSheets(){
         });
         sh += '</div>';
       });
+      if (state.ui.dmLine) { const ti = t.items.find((x) => String(x.n) === String(it.n)), nm = ti ? dmFor(ti) : []; if (nm.length) sh += '<div class="dmline"><b>Also on DeltaMath:</b> ' + esc(nm.slice(0, 5).join(' · ')) + (nm.length > 5 ? ' · +' + (nm.length - 5) + ' more' : '') + '</div>'; }
       if (keyline) ky += '<div class="k">' + keyline + '</div>';
       sh += '</div>';
     });
@@ -329,6 +344,129 @@ function buildSheets(){
   $('#sheets').classList.toggle('onePer', state.ui.pageMode === 'one');
   $('#keys').innerHTML = pk.length ? '<div style="max-width:8.5in;margin:0 auto 10px"><h2 style="margin:0">Answer keys (teacher copy)</h2></div>' + ky : '';
 }
+
+/* ---------------- DeltaMath ---------------- */
+const INV = window.DMINV, DMM = window.DMMAP || {};
+const invByName = {}; INV.skills.forEach((r) => { invByName[r.n] = r; });
+const CNAME = { '7':'7th', '8':'8th', 'A1':'Alg I', 'AA':'Adv Alg' };
+const cp = (name) => { const r = invByName[name]; return r ? r.c.map((c) => '<span class="cp c' + c + '">' + CNAME[c] + '</span>').join('') : '<span class="cp" title="Not in the inventory">custom</span>'; };
+const cpText = (name) => { const r = invByName[name]; return r ? r.c.map((c) => CNAME[c]).join(', ') : ''; };
+const mapFor = (id) => state.dm.map[id] || (DMM[id] ? DMM[id].dm : []);
+const dmFor = (it) => (it.dm && it.dm.length) ? it.dm : (it.skill ? mapFor(it.skill) : []);
+function itemDmCell(it, i){
+  const nm = dmFor(it), custom = it.dm && it.dm.length;
+  return '<span class="muted">' + (nm.length ? nm.length + ' skill' + (nm.length > 1 ? 's' : '') + (custom ? ' (custom)' : '') : 'none') + '</span> <button class="btn sm" data-act="dmPick" data-t="item" data-i="' + i + '">Choose…</button>' + (custom ? ' <button class="btn sm" data-act="dmReset" data-t="item" data-i="' + i + '">Use mapping</button>' : '');
+}
+function setDmList(list){
+  if (dmTarget.type === 'map') state.dm.map[dmTarget.id] = list; else curTest().items[dmTarget.i].dm = list;
+  save();
+}
+let dmTarget = null, dmIq = '', dmIc = '', dmIu = false;
+const dmTargetList = () => dmTarget.type === 'map' ? mapFor(dmTarget.id).slice() : dmFor(curTest().items[dmTarget.i]).slice();
+function openDmPicker(target){
+  dmTarget = target; drawDmPicker(); const d = $('#dlg');
+  if (!d.open) { d.addEventListener('close', () => { if (dmTarget) { dmTarget = null; render(); } }, { once:true }); d.showModal(); }
+}
+function drawDmPicker(){
+  const q = ($('#dmQ') || {}).value || '', c = ($('#dmC') || {}).value || '';
+  const title = dmTarget.type === 'map' ? 'DeltaMath skills for “' + skillName(dmTarget.id) + '”' : 'DeltaMath skills for item ' + curTest().items[dmTarget.i].n;
+  const cur = dmTargetList();
+  $('#dlg').innerHTML = '<div class="dlg" style="min-width:min(640px,90vw)"><div class="row"><h2 class="grow">' + esc(title) + '</h2><button class="btn pri" data-dm="done">Done</button></div>' +
+    '<div style="margin:8px 0">' + (cur.length ? cur.map((n) => '<span class="chip">' + esc(n) + ' ' + cp(n) + '<button data-dm="del" data-n="' + esc(n) + '" title="Remove">✕</button></span>').join('') : '<span class="muted">Nothing chosen yet.</span>') + '</div>' +
+    '<div class="row"><input type="text" id="dmQ" placeholder="Search DeltaMath skills or standards (e.g. quadratic, log, 7.PAR)" style="flex:1;min-width:220px" value="' + esc(q) + '"><select id="dmC"><option value="">All courses</option>' + Object.keys(CNAME).map((k) => '<option value="' + k + '"' + (k === c ? ' selected' : '') + '>' + INV.courses[k] + '</option>').join('') + '</select></div>' +
+    '<div class="dmres" id="dmRes" style="margin-top:8px"></div><p class="muted">Same-named skills in different courses are the same problem type, so each is listed once with its course tags.</p></div>';
+  updateDmResults(); const qi = $('#dmQ'); if (qi && q) { qi.focus(); qi.setSelectionRange(q.length, q.length); }
+}
+function updateDmResults(){
+  const box = $('#dmRes'); if (!box) return;
+  const cur = new Set(dmTargetList()), rows = DM.search(INV, ($('#dmQ') || {}).value, ($('#dmC') || {}).value);
+  box.innerHTML = rows.slice(0, 80).map((r) => '<div class="r"><span class="nm">' + esc(r.n) + '</span>' + cp(r.n) + '<span class="muted" style="font-size:11px">' + esc(r.s.slice(0, 2).join(', ')) + '</span>' + (cur.has(r.n) ? '<span class="pill">added</span>' : '<button class="btn sm" data-dm="add" data-n="' + esc(r.n) + '">Add</button>') + '</div>').join('') + (rows.length > 80 ? '<div class="r muted">' + (rows.length - 80) + ' more — type to narrow the list.</div>' : '') + (!rows.length ? '<div class="r muted">No match.</div>' : '');
+}
+function showText(title, text){
+  $('#dlg').innerHTML = '<div class="dlg" style="min-width:min(640px,90vw)"><div class="row"><h2 class="grow">' + esc(title) + '</h2><button class="btn" data-dm="closeText">Close</button></div><textarea id="dmTxt" style="width:100%;height:50vh;margin-top:8px">' + esc(text) + '</textarea></div>';
+  $('#dlg').showModal(); $('#dmTxt').select();
+}
+function copyText(txt){
+  const ok = () => toast('Copied. Paste it wherever you build the DeltaMath assignment.');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok).catch(() => showText('Copy this text', txt)); else showText('Copy this text', txt);
+}
+function dmGroups(){
+  const t = curTest(), c = curClass(); if (!t || !c) return null;
+  const r = DM.groupStudents(t.items, c.roster, dmFor);
+  const off = t.dmOff || {};
+  r.groups.forEach((g) => { g.key = (s) => c.id + '|' + g.main.n + '|' + s; g.use = g.skills.filter((s) => !off[g.key(s.name)]); });
+  return r;
+}
+function dmText(only){
+  const t = curTest(), c = curClass(), r = dmGroups(); if (!r) return '';
+  const gs = r.groups.map((g, i) => ({ g, i })).filter((x) => only == null || x.i === only);
+  return gs.map(({ g, i }) => 'Group ' + (i + 1) + ' — ' + (g.main.skill ? skillName(g.main.skill) : 'Item ' + g.main.n) + ' (item ' + g.main.n + ') — ' + t.name + ', ' + c.name + '\nStudents: ' + g.students.join(', ') + '\nAssign on DeltaMath:\n' + g.use.map((s) => '  • ' + s.name + (cpText(s.name) ? '  [' + cpText(s.name) + ']' : '')).join('\n')).join('\n\n');
+}
+function viewDM(){
+  const v = state.ui.dmView || 'assign';
+  const tab = (k, n) => '<button class="btn sm' + (v === k ? ' pri' : '') + '" data-act="dmView" data-v="' + k + '">' + n + '</button>';
+  return '<div class="card"><div class="row"><h2 class="grow">DeltaMath</h2>' + tab('assign', 'Assignments') + tab('map', 'Mapping') + tab('inv', 'Browse DeltaMath skills') + '</div><p class="muted" style="margin-bottom:0">Optional. Nothing here changes your printed sheets unless you tick the DeltaMath box on the Print sheets tab.</p></div>' + (v === 'map' ? dmMapView() : v === 'inv' ? dmInvView() : dmAssignView());
+}
+function dmAssignView(){
+  const t = curTest(), c = curClass();
+  if (!t) return '<div class="card">Create a test first (tab 1).</div>';
+  let h = '<div class="card"><div class="row"><h3 class="grow">' + esc(t.name) + '</h3>' + testPicker() + classPicker() + '</div>';
+  if (!c || !c.roster.length) return h + '<p>Add students and mark misses first (tab 2).</p></div>';
+  const r = dmGroups();
+  h += '<p class="muted" style="margin-bottom:0">Students are grouped by the item most of them missed. A group also gets any other item that more than half of its students missed. Untick a skill to leave it out.</p></div>';
+  if (!r.groups.length) h += '<div class="card">No missed items with DeltaMath skills yet. Mark misses in tab 2, or choose skills for your items in the Mapping view.</div>';
+  else {
+    h += '<div class="card"><div class="row"><button class="btn pri" data-act="dmCopy" data-g="all">Copy all groups</button><button class="btn" data-act="dmDownload">Download as text</button><span class="muted">' + r.groups.length + ' group' + (r.groups.length > 1 ? 's' : '') + '</span></div></div>';
+    r.groups.forEach((g, gi) => {
+      h += '<div class="card dmg"><div class="row"><h3 class="grow">Group ' + (gi + 1) + ' · ' + esc(g.main.skill ? skillName(g.main.skill) : 'Item ' + g.main.n) + ' <span class="pill">' + g.students.length + ' student' + (g.students.length > 1 ? 's' : '') + '</span></h3><button class="btn sm" data-act="dmCopy" data-g="' + gi + '">Copy this group</button></div>';
+      h += '<p style="margin:6px 0"><b>Students:</b> ' + esc(g.students.join(', ')) + '</p>';
+      if (g.extras.length) h += '<p class="muted" style="margin:0 0 6px">Also includes item' + (g.extras.length > 1 ? 's ' : ' ') + esc(g.extras.map((e) => e.n).join(', ')) + ' (missed by most of this group).</p>';
+      const off = t.dmOff || {};
+      g.skills.forEach((s) => { const k = g.key(s.name), on = !off[k]; h += '<div class="dmsk' + (on ? '' : ' off') + '"><input type="checkbox" data-ch="dmOff" data-k="' + esc(k) + '"' + (on ? ' checked' : '') + '><span class="nm">' + esc(s.name) + '</span>' + cp(s.name) + '<span class="muted" style="font-size:12px">item ' + esc(s.from.join(', ')) + '</span></div>'; });
+      if (g.notCovered.length) h += '<p class="muted" style="margin:8px 0 0;font-size:13px">Also missed, not included above: ' + esc(g.notCovered.map((x) => x.name + ' (item ' + x.items.join(', ') + ')').join('; ')) + '</p>';
+      h += '</div>';
+    });
+  }
+  if (r.unmapped.length) h += '<div class="card"><div class="notice" style="margin:0">These missed items have no DeltaMath skills yet, so they are left out: ' + esc(r.unmapped.map((u) => 'item ' + u.n + ' (' + u.count + ' student' + (u.count > 1 ? 's' : '') + ')').join(', ')) + '. Choose skills in the Mapping view or with “Choose…” on the Tests tab.</div></div>';
+  return h;
+}
+function dmMapView(){
+  let h = '<div class="card"><div class="row"><h3 class="grow">Which DeltaMath skills go with each bank skill</h3><button class="btn" data-act="exportDm">Export my mapping</button><button class="btn" data-act="importDm">Import a mapping</button></div><p class="muted">These are suggested matches. Change any of them; your changes are saved in this browser and can be exported to share.</p>';
+  units().forEach((u) => {
+    h += '<h4 style="margin:14px 0 4px">' + esc(u) + '</h4>';
+    allSkills().filter((s) => s.unit === u).forEach((s) => {
+      const list = mapFor(s.id), custom = !!state.dm.map[s.id], note = DMM[s.id] && DMM[s.id].note;
+      h += '<div style="padding:6px 0;border-bottom:1px solid var(--line)"><div class="row"><b>' + esc(s.name) + '</b><span class="pill' + (list.length ? '' : ' warn') + '">' + list.length + ' DeltaMath</span><button class="btn sm" data-act="dmPick" data-t="map" data-id="' + esc(s.id) + '">Edit…</button>' + (custom ? '<button class="btn sm" data-act="dmReset" data-t="map" data-id="' + esc(s.id) + '">Back to suggested</button>' : '') + '</div>' +
+        '<div>' + list.map((n) => '<span class="chip">' + esc(n) + ' ' + cp(n) + '</span>').join('') + '</div>' + (note && !custom ? '<div class="muted" style="font-size:12.5px">' + esc(note) + '</div>' : '') + '</div>';
+    });
+  });
+  return h + '</div>';
+}
+function dmUsage(){
+  const u = {}; allSkills().forEach((s) => mapFor(s.id).forEach((n) => { (u[n] = u[n] || []).push(s.name); })); return u;
+}
+function dmInvView(){
+  const use = dmUsage();
+  let h = '<div class="card"><h3 style="margin-top:0">Browse DeltaMath skills</h3><div class="row"><input type="text" id="dmIq" placeholder="Search skills or standards" style="flex:1;min-width:220px" value="' + esc(dmIq) + '"><select id="dmIc"><option value="">All courses</option>' + Object.keys(CNAME).map((k) => '<option value="' + k + '"' + (k === dmIc ? ' selected' : '') + '>' + INV.courses[k] + '</option>').join('') + '</select><label><input type="checkbox" id="dmIu"' + (dmIu ? ' checked' : '') + '> Only skills with no bank question set yet</label></div>';
+  h += '<p class="muted">' + Object.keys(CNAME).map((k) => { const all = INV.skills.filter((r) => r.c.includes(k)), un = all.filter((r) => !use[r.n]).length; return '<b>' + INV.courses[k] + '</b>: ' + all.length + ' skills, ' + un + ' not covered'; }).join(' · ') + '</p>';
+  return h + '<div class="dmres" id="dmIres" style="max-height:none"></div></div>';
+}
+function updateInvResults(){
+  const box = $('#dmIres'); if (!box) return;
+  const use = dmUsage(); let rows = DM.search(INV, dmIq, dmIc); if (dmIu) rows = rows.filter((r) => !use[r.n]);
+  box.innerHTML = rows.slice(0, 250).map((r) => '<div class="r"><span class="nm">' + esc(r.n) + '</span>' + cp(r.n) + '<span class="muted" style="font-size:11px">' + esc(r.s.slice(0, 2).join(', ')) + '</span><span class="muted" style="font-size:12px">' + (use[r.n] ? 'used by: ' + esc(use[r.n].slice(0, 2).join(', ')) + (use[r.n].length > 2 ? '…' : '') : '<i>not used yet</i>') + '</span></div>').join('') + (rows.length > 250 ? '<div class="r muted">' + (rows.length - 250) + ' more — narrow the search.</div>' : '') + (!rows.length ? '<div class="r muted">No match.</div>' : '');
+}
+document.addEventListener('input', (e) => { const id = e.target.id; if (id === 'dmQ') updateDmResults(); if (id === 'dmIq') { dmIq = e.target.value; updateInvResults(); } });
+document.addEventListener('change', (e) => { const id = e.target.id; if (id === 'dmC') updateDmResults(); if (id === 'dmIc') { dmIc = e.target.value; updateInvResults(); } if (id === 'dmIu') { dmIu = e.target.checked; updateInvResults(); } });
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-dm]'); if (!b) return;
+  const k = b.dataset.dm;
+  if (k === 'done' || k === 'closeText') { $('#dlg').close(); return; }
+  if (!dmTarget) return;
+  const cur = dmTargetList();
+  if (k === 'add' && !cur.includes(b.dataset.n)) { cur.push(b.dataset.n); setDmList(cur); drawDmPicker(); }
+  if (k === 'del') { setDmList(cur.filter((n) => n !== b.dataset.n)); drawDmPicker(); }
+});
 
 /* ---------------- view: bank ---------------- */
 let previewN = {};
@@ -538,6 +676,7 @@ $('#file').addEventListener('change', async (e) => {
   try {
     if (importKind === 'all') { if (!data.tests || !data.bank) throw 0; if (!confirm('Replace everything in this browser with the backup?')) return; state = Object.assign(defaults(), data); toast('Backup restored'); }
     else if (importKind === 'test') { if (data.type !== 'reteach-test') throw 0; const t = data.test; t.id = uid(); t.classes = []; t.setCode = t.setCode || uid().slice(0, 4).toUpperCase(); state.tests.push(t); state.ui.testId = t.id; toast('Test imported'); }
+    else if (importKind === 'dm') { if (data.type !== 'reteach-dm') throw 0; Object.assign(state.dm.map, data.map || {}); toast('DeltaMath mapping imported'); }
     else if (importKind === 'bank') {
       if (data.type !== 'reteach-bank') throw 0;
       const have = new Set(allSkills().map((s) => s.id));
@@ -582,7 +721,14 @@ const A = {
     state.bank.skills.push(s); state.ui.bankSkill = s.id; save(); render(); toast('Skill added — now add questions to it');
   },
   exportBank(){ const c = state.bank.custom.map((t) => { const x = clone(t); delete x.custom; return x; }); download('my-reteach-questions.json', { type:'reteach-bank', skills:state.bank.skills, templates:c }); },
-  importBank(){ pickFile('bank'); }
+  importBank(){ pickFile('bank'); },
+  dmView(b){ state.ui.dmView = b.dataset.v; save(); render(); },
+  dmPick(b){ openDmPicker(b.dataset.t === 'map' ? { type:'map', id:b.dataset.id } : { type:'item', i:+b.dataset.i }); },
+  dmReset(b){ if (b.dataset.t === 'map') delete state.dm.map[b.dataset.id]; else { delete curTest().items[+b.dataset.i].dm; } save(); render(); },
+  dmCopy(b){ const txt = dmText(b.dataset.g === 'all' ? null : +b.dataset.g); copyText(txt); },
+  dmDownload(){ const blob = new Blob([dmText(null)], { type:'text/plain' }), a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'deltamath-groups.txt'; document.body.appendChild(a); a.click(); a.remove(); },
+  exportDm(){ download('my-deltamath-mapping.json', { type:'reteach-dm', map:state.dm.map }); },
+  importDm(){ pickFile('dm'); }
 };
 const C = {
   pickTest(el){ state.ui.testId = el.value; state.ui.classId = null; state.ui.who = ''; },
@@ -592,6 +738,8 @@ const C = {
   itemSkill(el){ curTest().items[+el.dataset.i].skill = el.value; },
   miss(el){ const s = curClass().roster[+el.dataset.s], n = el.dataset.n, k = s.missed.indexOf(n); if (el.checked && k < 0) s.missed.push(n); if (!el.checked && k >= 0) s.missed.splice(k, 1); save(); const sc = $('.gridwrap'), l = sc.scrollLeft, tp = sc.scrollTop; $('#gridbox').innerHTML = gridHTML(curTest(), curClass()); const n2 = $('.gridwrap'); n2.scrollLeft = l; n2.scrollTop = tp; return 'noRender'; },
   cnt(el){ state.counts[el.dataset.t] = Math.max(0, +el.value || 0); },
+  dmLine(el){ state.ui.dmLine = el.checked; },
+  dmOff(el){ const t = curTest(); t.dmOff = t.dmOff || {}; if (el.checked) delete t.dmOff[el.dataset.k]; else t.dmOff[el.dataset.k] = 1; },
   pageMode(el){ state.ui.pageMode = el.value; },
   who(el){ state.ui.who = el.value; },
   setCode(el){ curTest().setCode = el.value.trim() || 'A'; },

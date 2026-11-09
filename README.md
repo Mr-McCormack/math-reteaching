@@ -46,3 +46,15 @@ A template can include a `graphs` list and the app draws it (parabolas and lines
 
 ## Files
 `index.html` app · `engine.js` problem generator · `graphs.js` graph drawing · `sheets.js` sheet builder · `bank/` questions · `vendor/katex/` math display (MIT) · `tools/` optional tests
+
+## DeltaMath tab (optional)
+
+Tab **4 · DeltaMath** helps you build DeltaMath assignments from the same missed-item marks. Nothing else in the app depends on it.
+
+- **Assignments:** students are grouped by the item most of them missed; a group also gets any other item that more than half of its students missed. Untick any skill, then copy the group's student list and skill names (or download all groups as text) and build the assignment on DeltaMath.
+- **Mapping:** each bank skill has suggested DeltaMath skills. Edit them; changes are saved in your browser and can be exported/imported (`reteach-dm` file). Same-named DeltaMath skills in different courses are one skill, tagged with every course they appear in.
+- **Browse DeltaMath skills:** search all 758 skills from your 7th, 8th, Algebra I and Advanced Algebra lists, and filter to the ones no bank question set covers yet.
+- **Tests tab:** each item has a **DeltaMath skills** cell (Choose…). An item can use a bank skill, DeltaMath skills only, or both.
+- **Print sheets:** tick “Add ‘assign on DeltaMath’ line” to print the item's DeltaMath skills under its practice problems (off by default).
+
+Files: `deltamath/skills.js` (inventory), `deltamath/map.js` (suggested matches), `deltamath/dm.js` (grouping logic).

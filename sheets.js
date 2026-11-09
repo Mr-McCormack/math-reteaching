@@ -26,7 +26,7 @@
       if (!items.length) continue;
       const used = new Set();
       const blocks = items.map((it) => {
-        if (!it.skill) return { n: it.n, skill: null, name: null, tiers: [], warning: 'No skill chosen for this item.' };
+        if (!it.skill) return { n: it.n, skill: null, name: null, tiers: [], warning: (it.dm && it.dm.length) ? 'No printed practice for this item; it is assigned on DeltaMath.' : 'No skill chosen for this item.' };
         const tiers = [];
         for (const tier of E.TIERS) {
           const count = (options.counts && options.counts[tier]) || 0;
