@@ -8,12 +8,27 @@
   'use strict';
   let uid = 0;
   const fmt = (v) => (Math.round(v * 100) / 100).toString().replace('-', '−');
-  const f = (c, x) => (c.type === 'quad' ? c.a * (x - c.h) * (x - c.h) + c.k : c.m * x + c.b);
+  const prod = (arr, x) => (arr || []).reduce((p, r) => p * (x - r), 1);
+  // curve types: quad {a,h,k} · line {m,b} · exp {a,b,h,k}: a*b^(x-h)+k · log {a,b,h,k}: a*log_b(x-h)+k
+  //              poly {a, roots[]} · hyp {a,h,k}: a/(x-h)+k · rat {a, num[], den[]}: a*prod(x-num)/prod(x-den)
+  const f = (c, x) => {
+    switch (c.type) {
+      case 'quad': return c.a * (x - c.h) * (x - c.h) + c.k;
+      case 'exp': return c.a * Math.pow(c.b, x - c.h) + c.k;
+      case 'log': return x - c.h <= 0 ? NaN : c.a * Math.log(x - c.h) / Math.log(c.b) + c.k;
+      case 'poly': return c.a * prod(c.roots, x);
+      case 'hyp': return x === c.h ? NaN : c.a / (x - c.h) + c.k;
+      case 'rat': return c.a * prod(c.num, x) / prod(c.den, x);
+      default: return c.m * x + c.b;
+    }
+  };
+  const poles = (c) => (c.type === 'rat' ? c.den || [] : c.type === 'hyp' ? [c.h] : []);
 
   function autoView(g) {
     const xs = [0], ys = [0];
     (g.curves || []).forEach((c) => {
       if (c.style === 'dashed') return;
+      if (!['quad', 'line'].includes(c.type)) { xs.push(-5, 5); ys.push(-5, 5); return; }
       if (c.type === 'quad') {
         xs.push(c.h); ys.push(c.k); if (Math.abs(f(c, 0) - c.k) <= 14) ys.push(f(c, 0));
         const disc = -c.k / c.a;
@@ -48,13 +63,24 @@
     for (let x = Math.ceil(x0); x <= x1; x++) if (x % step === 0 && x !== 0) s += '<text x="' + X(x) + '" y="' + (Y(ay) + (ay <= y0 + 0.01 ? -4 : 11)) + '" text-anchor="middle" paint-order="stroke" stroke="#fff" stroke-width="3">' + fmt(x) + '</text>';
     for (let y = Math.ceil(y0); y <= y1; y++) if (y % step === 0 && y !== 0) s += '<text x="' + (X(ax) + (ax <= x0 + 0.01 ? 4 : -4)) + '" y="' + (Y(y) + 3.5) + '" text-anchor="' + (ax <= x0 + 0.01 ? 'start' : 'end') + '">' + fmt(y) + '</text>';
     s += '<text x="' + (pad + W + 2) + '" y="' + (Y(ay) + 3.5) + '" font-style="italic">x</text><text x="' + (X(ax) + 4) + '" y="' + (pad - 8) + '" font-style="italic">y</text>';
+    (g.asym || []).forEach((a) => {
+      if (a.x !== undefined) s += '<line x1="' + X(a.x) + '" y1="' + pad + '" x2="' + X(a.x) + '" y2="' + (pad + H) + '" stroke="#555" stroke-width="1.3" stroke-dasharray="6 4"/>';
+      if (a.y !== undefined) s += '<line x1="' + pad + '" y1="' + Y(a.y) + '" x2="' + (pad + W) + '" y2="' + Y(a.y) + '" stroke="#555" stroke-width="1.3" stroke-dasharray="6 4"/>';
+    });
     (g.curves || []).forEach((c) => {
-      const n = 240; let d = '';
-      for (let i = 0; i <= n; i++) { const x = x0 + (xs * i) / n, y = f(c, x); d += (i ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(Math.max(-1e4, Math.min(1e4, y))).toFixed(1); }
-      s += '<path d="' + d + '" fill="none" clip-path="url(#' + id + ')" stroke="' + (c.style === 'dashed' ? '#777' : '#000') + '" stroke-width="' + (c.style === 'dashed' ? 1.3 : 2) + '"' + (c.style === 'dashed' ? ' stroke-dasharray="5 4"' : '') + ' stroke-linejoin="round"/>';
+      const n = 400; let d = '', pen = false, px = null; const pl = poles(c);
+      for (let i = 0; i <= n; i++) {
+        const x = x0 + (xs * i) / n, y = f(c, x);
+        const ok = Number.isFinite(y) && Math.abs(y) < 1e4;
+        if (ok && px !== null && pl.some((r) => (px - r) * (x - r) < 0)) pen = false;
+        px = x;
+        if (!ok) { pen = false; continue; }
+        d += (pen ? 'L' : 'M') + X(x).toFixed(1) + ' ' + Y(y).toFixed(1); pen = true;
+      }
+      s += '<path d="' + d + '" fill="none" clip-path="url(#' + id + ')" stroke="' + (c.style === 'dashed' ? '#777' : '#000') + '" stroke-width="' + (c.style === 'dashed' ? 1.3 : 2) + '"' + (c.style === 'dashed' ? ' stroke-dasharray="6 4"' : '') + '/>';
     });
     (g.points || []).forEach((p) => {
-      s += '<circle cx="' + X(p.x) + '" cy="' + Y(p.y) + '" r="3.6" fill="#000"/>';
+      s += '<circle cx="' + X(p.x) + '" cy="' + Y(p.y) + '" r="3.6" fill="' + (p.open ? '#fff' : '#000') + '" stroke="#000" stroke-width="1.6"/>';
       const t = p.label === 'coords' ? '(' + fmt(p.x) + ', ' + fmt(p.y) + ')' : p.label;
       if (t) { const right = X(p.x) < pad + W * 0.6; s += '<text x="' + (X(p.x) + (right ? 6 : -6)) + '" y="' + (Y(p.y) - 6) + '" text-anchor="' + (right ? 'start' : 'end') + '" font-size="14" font-weight="bold" paint-order="stroke" stroke="#fff" stroke-width="3">' + t + '</text>'; }
     });

@@ -265,8 +265,9 @@
       label: sp.label || '',
       blank: !!sp.blank,
       view: sp.view ? sp.view.map(N) : null,
-      curves: (sp.curves || []).map((c) => { const o = { type: c.type, style: c.style || 'solid' }; ['a', 'h', 'k', 'm', 'b'].forEach((k) => { if (c[k] !== undefined) o[k] = N(c[k]); }); return o; }),
-      points: (sp.points || []).map((p) => ({ x: N(p.x), y: N(p.y), label: p.label || '' })),
+      asym: (sp.asym || []).map((a) => { const o = {}; if (a.x !== undefined) o.x = N(a.x); if (a.y !== undefined) o.y = N(a.y); return o; }),
+      curves: (sp.curves || []).map((c) => { const o = { type: c.type, style: c.style || 'solid' }; ['a', 'h', 'k', 'm', 'b'].forEach((k) => { if (c[k] !== undefined) o[k] = N(c[k]); }); ['roots', 'num', 'den'].forEach((k) => { if (c[k] !== undefined) o[k] = c[k].map(N); }); return o; }),
+      points: (sp.points || []).map((p) => ({ x: N(p.x), y: N(p.y), label: p.label || '', open: !!p.open })),
     }));
   }
 
