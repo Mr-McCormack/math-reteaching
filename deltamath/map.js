@@ -361,5 +361,132 @@ window.DMMAP={
    "Write Expression from Context (mx+b)"
   ],
   "note": ""
+ },
+ "cx-i-pow": {
+  "dm": [
+   "Powers of i",
+   "Powers of i (Algebraic)",
+   "Powers of i (basic)",
+   "Complex Numbers to Powers"
+  ],
+  "note": ""
+ },
+ "cx-addsub": {
+  "dm": [
+   "Add/Subtract Complex Numbers",
+   "Add Imaginary Numbers"
+  ],
+  "note": ""
+ },
+ "cx-mult": {
+  "dm": [
+   "Multiply Complex Numbers",
+   "Multiply Imaginary Numbers",
+   "Squaring Complex Numbers with Radicals"
+  ],
+  "note": ""
+ },
+ "cx-div": {
+  "dm": [
+   "Complex Fractions"
+  ],
+  "note": "Check: \"Complex Fractions\" may be about fractions inside fractions, not dividing complex numbers. No division-of-complex-numbers skill appears on your lists."
+ },
+ "cx-sqrt": {
+  "dm": [
+   "Simplifying Radicals with Negative Radicands",
+   "Simplify Imaginary Expressions (Level 1)",
+   "Simplify Imaginary Expressions (Level 2)"
+  ],
+  "note": ""
+ },
+ "log-eval": {
+  "dm": [
+   "Evaluate Logarithms (Level 1)",
+   "Evaluate Logarithms (Level 2)",
+   "Evaluate Logarithms (Level 3)"
+  ],
+  "note": ""
+ },
+ "log-convert": {
+  "dm": [
+   "Convert Exponential Equation to Log",
+   "Convert Exponential Equation to Log (Numeric)",
+   "Convert Log Equation to Exponential",
+   "Convert Log Equation to Exponential (Numeric)",
+   "Logarithmic Form",
+   "Logarithmic Form 2"
+  ],
+  "note": ""
+ },
+ "log-solve": {
+  "dm": [
+   "Basic Log Equations",
+   "Log Equations (1st Degree)",
+   "Log Equations (2nd Degree) Level 1",
+   "Solving Natural Log Equations"
+  ],
+  "note": ""
+ },
+ "exp-eq": {
+  "dm": [
+   "Exponential Eqns Common Base (Level 1)",
+   "Exponential Eqns Common Base (Level 2)",
+   "Exponential Eqns Common Base (Level 3)"
+  ],
+  "note": ""
+ },
+ "exp-model": {
+  "dm": [
+   "Half Life and Doubling Time",
+   "Half Life and Doubling (Solve for t)",
+   "Find Growth/Decay Percentage (Level 1)",
+   "Find Growth/Decay Percentage (Level 2)",
+   "Exponentials - Various Forms and Units"
+  ],
+  "note": "Check: compound interest skills are not covered by these bank questions yet."
+ },
+ "frac-exp": {
+  "dm": [
+   "Intro to Fractional Exponents (Guided)",
+   "Simplify Fractional Exponents (Type 1)",
+   "Simplify Fractional Exponents (Type 2)",
+   "Simplify Fractional Exponents (Type 3)",
+   "Exponential and Radical Form",
+   "Negative and Fractional Exponents (MC)"
+  ],
+  "note": ""
+ },
+ "rad-eq": {
+  "dm": [
+   "Radical Equations (Level 1)",
+   "Radical Equations (Level 2)",
+   "Radical Equations (Level 3)",
+   "Radical Equations (Level 4)"
+  ],
+  "note": ""
+ },
+ "cubes": {
+  "dm": [
+   "Factoring Diff / Sum of Cubes (Level 1)",
+   "Factoring Diff / Sum of Cubes (Level 2)"
+  ],
+  "note": ""
+ },
+ "quartic": {
+  "dm": [
+   "Factoring Quartic Trinomial (Level 1)",
+   "Factoring Quartic Trinomial (Level 2)"
+  ],
+  "note": ""
+ },
+ "poly-zeros": {
+  "dm": [
+   "Write Polynomial Function From Graph",
+   "Select Equation from Graph Roots (L1)",
+   "Select Equation from Graph Roots (L2)",
+   "Graph Factored Polynomial from Roots"
+  ],
+  "note": "Check: these are graph-based; no skill named for writing a polynomial from its zeros."
  }
 };
