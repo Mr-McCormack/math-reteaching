@@ -488,5 +488,164 @@ window.DMMAP={
    "Graph Factored Polynomial from Roots"
   ],
   "note": "Check: these are graph-based; no skill named for writing a polynomial from its zeros."
+ },
+ "exp-graph": {
+  "dm": [
+     "Graphing Exponential and Log Functions",
+     "Make Table, Plot, Graph, find D/R - Exponential Functions L1",
+     "Make Table, Plot, Graph, find D/R - Exponential Functions L2"
+  ],
+  "note": ""
+ },
+ "log-graph": {
+  "dm": [
+     "Graphing Exponential and Log Functions",
+     "Make Table, Plot, Graph, find D/R - Logarithmic Functions L1",
+     "Make Table, Plot, Graph, find D/R - Logarithmic Functions L2"
+  ],
+  "note": ""
+ },
+ "poly-graph": {
+  "dm": [
+     "Graph Factored Polynomial from Roots",
+     "Graph Factored Polynomial from Roots/Sign Chart L1",
+     "Graph Polynomials and State Factors"
+  ],
+  "note": ""
+ },
+ "rat-graph": {
+  "dm": [
+     "Graphing Rational Functions",
+     "Graphing Rational Functions (Basic)",
+     "Determine Features of a Rational Graph"
+  ],
+  "note": ""
+ },
+ "rat-simp": {
+  "dm": [
+     "Simplifying Rationals",
+     "Simplify Rational (Trinomial Only)"
+  ],
+  "note": ""
+ },
+ "rat-excl": {
+  "dm": [
+     "Undefined Rationals",
+     "Find Vertical Asymptotes Algebraically"
+  ],
+  "note": "Check: excluded values are covered by \"Undefined Rationals\"."
+ },
+ "rat-mult": {
+  "dm": [
+     "Multiplying / Dividing Rationals (Level 1)",
+     "Multiply Rational Expressions (Level 2)",
+     "Multiply / Divide Rationals (Level 3)"
+  ],
+  "note": ""
+ },
+ "rat-add": {
+  "dm": [
+     "Adding / Subtracting Rational Expressions (Level 1)",
+     "Adding / Subtracting Rational Expressions (Level 2)"
+  ],
+  "note": ""
+ },
+ "rat-eq": {
+  "dm": [
+     "Rational Equations (Level 1)",
+     "Rational Equations (Level 2)",
+     "Rational Equations (Level 3)"
+  ],
+  "note": ""
+ },
+ "mat-add": {
+  "dm": [
+     "Matrix Addition and Subtraction",
+     "Addition and Scalar Multiplication of Matrices"
+  ],
+  "note": ""
+ },
+ "mat-scalar": {
+  "dm": [
+     "Addition and Scalar Multiplication of Matrices"
+  ],
+  "note": ""
+ },
+ "mat-mult": {
+  "dm": [
+     "Multiplying Matrices (2 by 2 only)",
+     "Multiplying Matrices"
+  ],
+  "note": ""
+ },
+ "mat-det": {
+  "dm": [
+     "Finding the Determinant of a 2 by 2 Matrix"
+  ],
+  "note": ""
+ },
+ "mat-inv": {
+  "dm": [
+     "Inverse of 2 by 2 Matrix using the Determinant",
+     "Inverse of 2 by 2 Matrix using Systems of Equations"
+  ],
+  "note": ""
+ },
+ "mat-solve": {
+  "dm": [
+     "Solve 2 by 2 System using Matrix Inverse",
+     "Write Augmented Matrix for Systems of Equations"
+  ],
+  "note": ""
+ },
+ "trig-conv": {
+  "dm": [
+     "Convert Degrees to Radians",
+     "Converting Radians to Degrees"
+  ],
+  "note": ""
+ },
+ "trig-exact": {
+  "dm": [
+     "Evaluate Basic Trig Functions (Radians)",
+     "Exact Trig Values Graphically (Sin/Cos/Tan)"
+  ],
+  "note": ""
+ },
+ "trig-ref": {
+  "dm": [
+     "Finding Reference Angles",
+     "Finding Coterminal Angles",
+     "Find Coterminal, Reference, and Quadrant"
+  ],
+  "note": ""
+ },
+ "trig-pt": {
+  "dm": [
+     "Trig Values from Point on Unit Circle",
+     "Identifying Trig Ratios (No Diagram)"
+  ],
+  "note": ""
+ },
+ "trig-eq": {
+  "dm": [
+     "Basic Trig Equations Visually (Degrees)",
+     "Basic Trig Equations Visually (Radians)"
+  ],
+  "note": ""
+ },
+ "z-score": {
+  "dm": [
+     "Normal Distribution - Find Z Score",
+     "Normal Distribution - Equivalent Scores"
+  ],
+  "note": ""
+ },
+ "emp-rule": {
+  "dm": [
+     "Normal Distribution - Empirical Rule",
+     "Normal Distribution w/ Population Size"
+  ],
+  "note": ""
  }
 };
