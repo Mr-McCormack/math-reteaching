@@ -106,7 +106,16 @@
     outsq: (a) => F(largestSquareRoot(needInt(a, 'outsq'))),
     insq: (a) => { const n = needInt(a, 'insq'); const o = largestSquareRoot(n); return F(n / (o * o)); },
     if: (c, a, b) => (c.n !== 0 ? a : b),
+    // Real-number functions. Results are rounded to 6 decimal places and kept as exact fractions,
+    // so they are fine to print with :dec1 / :dec2 (never use them where an exact answer is needed).
+    ln: (a) => approx(Math.log(a.num())),
+    log10: (a) => approx(Math.log10(a.num())),
+    logb: (b, x) => approx(Math.log(x.num()) / Math.log(b.num())),
+    ex: (a) => approx(Math.exp(a.num())),
+    pw: (a, x) => approx(Math.pow(a.num(), x.num())),
+    pipow: (a) => approx(Math.pow(a.num(), Math.PI)),
   };
+  function approx(v) { if (!Number.isFinite(v)) throw new Error('not a real number'); return F(Math.round(v * 1e6), 1e6); }
   function largestSquareRoot(n) { let best = 1; for (let k = 1; k * k <= n; k++) if (n % (k * k) === 0) best = k; return best; }
 
   function parseFormula(src) {
@@ -289,6 +298,7 @@
         answer: substitute(tpl.answer || '', env),
         steps: (tpl.steps || []).map((s) => substitute(s, env)),
         graphs: resolveGraphs(tpl.graphs, env),
+        distractors: (tpl.distractors || []).map((d) => substitute(d, env)),
       };
     }
     throw new Error('Could not find numbers that satisfy the constraints for template "' + (tpl.id || tpl.prompt) + '"');

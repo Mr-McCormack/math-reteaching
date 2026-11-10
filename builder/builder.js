@@ -37,7 +37,7 @@
       const used = byId[g._tpl];
       if (CH.eligible(g.prompt, g.answer) && used) {
         const sibs = []; for (let k = 0; k < 12; k++) { try { sibs.push(E.generate(used, base + '|sib' + k).answer); } catch (e) { /* skip */ } }
-        const r = CH.makeChoices(g.answer, sibs, base + '|mc' + (slot.mcRe || 0), 4);
+        const r = (g.distractors && g.distractors.length >= 2 ? CH.assemble(g.answer, g.distractors, base + '|mc' + (slot.mcRe || 0), 4) : null) || CH.makeChoices(g.answer, sibs, base + '|mc' + (slot.mcRe || 0), 4);
         if (r) { q.type = 'mc'; q.choices = r.choices; q.correct = r.correct; q.letter = 'ABCD'[r.correct]; }
       }
       if (q.type !== 'mc') q.mcFailed = true;

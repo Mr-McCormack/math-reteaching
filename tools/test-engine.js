@@ -57,5 +57,17 @@ eq('500 generated answers check out', bad, 0);
 threw = false; try { E.generate({ id: 'x', prompt: 'p', answer: 'a', params: { a: '1..2' }, constraints: ['a > 5'] }, 1); } catch (e) { threw = /satisfy/.test(e.message); } eq('impossible constraint', threw, true);
 // buildTier avoids repeats
 const tier = E.buildTier([tpl], 4, 'S', new Set()); eq('buildTier count', tier.length, 4); eq('buildTier unique', new Set(tier.map((t) => t.prompt)).size, 4);
+// ---- decimal helper functions (ln, log10, logb, ex, pw, pipow)
+{
+  const E2 = require('../engine.js');
+  const t = (prompt, ans, params) => E2.generate({ id: 't', skill: 's', tier: 'parallel', prompt, answer: ans, params: params || {} }, 's');
+  const chk = (g, want, label) => { if (g.answer !== want) { console.log('FAIL', label, g.answer, 'expected', want); fails++; } };
+  chk(t('x', '{{logb(27,9):dec2}}'), '0.67', 'logb(27,9)');
+  chk(t('x', '{{ex(0-3/4):dec2}}'), '0.47', 'e^-3/4');
+  chk(t('x', '{{ln(42)/2:dec2}}'), '1.87', 'ln sqrt 42');
+  chk(t('x', '{{log10(4/5):dec2}}'), '-0.10', 'log 4/5');
+  chk(t('x', '{{pipow(6):dec2}}'), '278.38', '6^pi');
+  
+}
 console.log(fails ? fails + ' FAILED' : 'engine: all tests passed');
 process.exit(fails ? 1 : 0);

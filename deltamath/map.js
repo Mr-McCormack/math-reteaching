@@ -647,5 +647,13 @@ window.DMMAP={
      "Normal Distribution w/ Population Size"
   ],
   "note": ""
- }
+ },
+ "exp-base": { "dm": ["Exponential Functions - Basic", "Find Growth/Decay Percentage (Level 1)", "Interpret Exponential Function Constant"], "note": "" },
+ "exp-range": { "dm": ["Features of Exponential and Log Functions"], "note": "" },
+ "exp-trans": { "dm": ["Graphing Exponential and Log Functions", "Features of Exponential and Log Functions"], "note": "Transformations are covered inside the graphing skills; no stand-alone skill found." },
+ "exp-gd": { "dm": ["Exponential Functions - Basic", "Find Growth/Decay Percentage (Level 1)", "Find Growth/Decay Percentage (Level 2)"], "note": "" },
+ "exp-int": { "dm": ["Features of Exponential and Log Functions", "Finding x-Intercepts Algebraically", "Finding y-Intercepts Algebraically"], "note": "" },
+ "exp-calc": { "dm": ["Plugging Into Exponential Formulas", "Evaluate Logarithms (Level 3)"], "note": "Check: nothing is named for calculator evaluation of e^x, ln or log." },
+ "exp-eq-log": { "dm": ["Exponential Functions - Basic (Solving)", "Solving Natural Log Equations"], "note": "" },
+ "inv-fn": { "dm": ["Inverse of Various Functions (M.C.)", "Evaluate Functions and Inverses from Tables (Level 1)", "Evaluate Functions and Inverses from Tables (Level 2)", "Logs and Exponentials as Inverses (Algebraic)", "Logs and Exponentials as Inverses (Numerical)"], "note": "" }
 };

@@ -73,6 +73,9 @@
   T('log-eval', 'challenge', r`Evaluate: $ \log_{ {{b}} }( {{n1}} ) - \log_{ {{b}} }( {{n2}} ) $`, r`{{k1-k2}}`, { params: { b: '2,3,5', k1: '1..5', k2: '1..4' }, derived: { n1: 'b^k1', n2: 'b^k2' }, constraints: ['k1 != k2', 'n1 <= 700'] });
   T('log-eval', 'challenge', r`Evaluate: $ {{a}}\log_{ {{b}} }( {{n}} ) $`, r`{{a*k}}`, { params: { a: '2..5', b: '2,3,5', k: '2..4' }, derived: { n: 'b^k' } });
 
+  T('log-eval', 'parallel', r`Evaluate: $ \log_{ {{B}} }( {{V}} ) $`, r`\frac{ {{n}} }{ {{m}} }`, { params: { c: '2..3', m: '2..4', n: '1..4' }, derived: { B: 'c^m', V: 'c^n' }, constraints: ['gcd(n,m) == 1', 'n < m', 'B <= 100'] });
+  T('log-eval', 'challenge', r`Evaluate: $ \log_{ {{B}} }( {{V}} ) $`, r`\frac{ {{n}} }{ {{m}} }`, { params: { c: '2..4', m: '3..5', n: '1..7' }, derived: { B: 'c^m', V: 'c^n' }, constraints: ['gcd(n,m) == 1', 'n != m', 'B <= 1100', 'V <= 1100'] });
+
   /* ---------- convert log <-> exponential ---------- */
   skill('log-convert', 'Logarithmic and exponential form', LG);
   T('log-convert', 'worked', r`Write $ \log_{ {{b}} }( {{n}} ) = {{k}} $ in exponential form.`, r`{{b}}^{ {{k}} } = {{n}}`, { params: { b: '2..9', k: '2..4' }, derived: { n: 'b^k' }, constraints: ['n <= 1000'],
@@ -85,6 +88,14 @@
   T('log-convert', 'parallel', r`Write $ \log_{ {{b}} }( {{n}} ) = x $ in exponential form.`, r`{{b}}^{x} = {{n}}`, { params: { b: '2..9', n: '3..60' }, constraints: ['b != n'] });
   T('log-convert', 'challenge', r`Write $ \ln(x) = {{k}} $ in exponential form.`, r`e^{ {{k}} } = x`, { params: { k: '-3,-2,-1,2,3,4,5,6' } });
   T('log-convert', 'challenge', r`Write $ e^{ {{k}} } = x $ in logarithmic form.`, r`\ln(x) = {{k}}`, { params: { k: '-3,-2,-1,2,3,4,5,6' } });
+
+  T('log-convert', 'parallel', r`Write $ \log_{ {{B}} }( {{V}} ) = \frac{ {{n}} }{ {{m}} } $ in exponential form.`, r`{{B}}^{\frac{ {{n}} }{ {{m}} }} = {{V}}`, { params: { c: '2..4', m: '2..5', n: '1..4', z: '0..1' }, derived: { B: 'c^m', V: 'c^n' }, constraints: ['gcd(n,m) == 1', 'n < m', 'B <= 1100'] });
+  T('log-convert', 'parallel', r`Write $ {{B}}^{\frac{ {{n}} }{ {{m}} }} = {{V}} $ in logarithmic form.`, r`\log_{ {{B}} }( {{V}} ) = \frac{ {{n}} }{ {{m}} }`, { params: { c: '2..4', m: '2..5', n: '1..4', z: '0..1' }, derived: { B: 'c^m', V: 'c^n' }, constraints: ['gcd(n,m) == 1', 'n < m', 'B <= 1100'] });
+  T('log-convert', 'parallel', r`Write $ \log({{n}}) = {{k}} $ in exponential form (base 10).`, r`10^{ {{k}} } = {{n}}`, { params: { k: '2..9' }, derived: { n: '10^k' } });
+  T('log-convert', 'parallel', r`Write $ 10^{ {{k}} } = {{n}} $ in logarithmic form.`, r`\log({{n}}) = {{k}}`, { params: { k: '2..9' }, derived: { n: '10^k' } });
+  T('log-convert', 'parallel', r`Write $ {{b}}^{ {{k}} } = {{n}} $ in logarithmic form.`, r`\log_{ {{b}} }( {{n}} ) = {{k}}`, { params: { b: '2..9', k: '4..8' }, derived: { n: 'b^k' }, constraints: ['n <= 5000', 'n >= 200'] });
+  T('log-convert', 'challenge', r`Write $ \log_{ {{b}} }( {{n}} ) = {{k}} $ in exponential form.`, r`{{b}}^{ {{k}} } = {{n}}`, { params: { b: '2..9', k: '4..8' }, derived: { n: 'b^k' }, constraints: ['n <= 5000', 'n >= 200'] });
+  T('log-convert', 'challenge', r`Write $ \log_{ {{B}} }( {{V}} ) = \frac{ {{n}} }{ {{m}} } $ in exponential form.`, r`{{B}}^{\frac{ {{n}} }{ {{m}} }} = {{V}}`, { params: { c: '2..4', m: '3..5', n: '2..7' }, derived: { B: 'c^m', V: 'c^n' }, constraints: ['gcd(n,m) == 1', 'n != m', 'B <= 1100', 'V <= 1100'] });
 
   /* ---------- solving log equations ---------- */
   skill('log-solve', 'Solving logarithmic equations', LG);
@@ -107,6 +118,13 @@
   T('exp-eq', 'parallel', r`Solve: $ {{b^2}}^{x} = {{n}} $`, r`x = {{k/2}}`, { params: { b: '2..5', k: '2..5' }, derived: { n: 'b^k' } });
   T('exp-eq', 'parallel', r`Solve: $ {{b}}^{x} = \frac{1}{ {{n}} } $`, r`x = {{-k}}`, { params: { b: '2..5', k: '1..4' }, derived: { n: 'b^k' } });
   T('exp-eq', 'challenge', r`Solve: $ {{b^p}}^{x{{c:sign}}} = {{b^q}}^{ {{e}} } $`, r`x = {{q*e/p-c}}`, { params: { b: '2..3', p: '2..3', q: '1..3', e: '2..4', c: '-4..4 !0' }, constraints: ['b^p <= 30', 'b^q <= 30', 'p != q'] });
+  T('exp-eq', 'easier', r`Solve: $ {{b}}^{x{{c:sign}}} = {{b}}^{ {{d}} } $`, r`x = {{d-c}}`, { params: { b: '2..9', c: '-5..5 !0', d: '2..6' } });
+  T('exp-eq', 'parallel', r`Solve: $ {{b}}^{x{{c:sign}}} = {{b}}^{ {{m}}x{{d:sign}} } $`, r`x = {{(c-d)/(m-1)}}`, { params: { b: '2..9', m: '2..4', c: '-7..7 !0', d: '-7..7 !0' }, constraints: ['c != d'] });
+  T('exp-eq', 'parallel', r`Solve: $ {{b}}^{ {{m}}x } = {{b^p}}^{ {{c}}-x } $`, r`x = {{p*c/(m+p)}}`, { params: { b: '2..5', m: '2..4', p: '2..3', c: '1..4' } });
+  T('exp-eq', 'parallel', r`Solve: $ {{b}}^{ {{m}}x } = \left(\frac{1}{ {{b^p}} }\right)^{x{{-c:sign}}} $`, r`x = {{p*c/(m+p)}}`, { params: { b: '2..5', m: '2..4', p: '2..3', c: '1..4' } });
+  T('exp-eq', 'parallel', r`Solve: $ {{b^p}}^{x{{-h:sign}}} = {{b^q}}^{x{{j:sign}}} $`, r`x = {{(p*h+q*j)/(p-q)}}`, { params: { b: '2..3', p: '2..3', q: '1..3', h: '-5..5 !0', j: '-5..5 !0' }, constraints: ['p != q', 'b^p <= 27', 'b^q <= 27'] });
+  T('exp-eq', 'challenge', r`Solve: $ {{b}}^{ {{m}}x } = {{b^p}}^{ {{c}}-x } $`, r`x = {{p*c/(m+p)}}`, { params: { b: '2..5', m: '2..5', p: '2..3', c: '1..5' } });
+  T('exp-eq', 'challenge', r`Solve: $ {{b^p}}^{x{{-h:sign}}} = {{b^q}}^{x{{j:sign}}} $`, r`x = {{(p*h+q*j)/(p-q)}}`, { params: { b: '2..3', p: '2..3', q: '1..3', h: '-5..5 !0', j: '-5..5 !0' }, constraints: ['p != q', 'b^p <= 27', 'b^q <= 27'] });
 
   /* ---------- exponential models ---------- */
   skill('exp-model', 'Exponential growth and decay models', LG);

@@ -11,7 +11,7 @@
 })(typeof self !== 'undefined' ? self : this, function (E) {
   'use strict';
   const ANG = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330, 360];
-  const WORDS = [['no solution', 'one solution'], ['infinitely many solutions', 'no solution'], ['no real solutions', 'two real solutions'], ['one real solution', 'two real solutions'], ['increasing', 'decreasing'], ['positive', 'negative'], ['maximum', 'minimum'], ['even', 'odd'], ['True', 'False'], ['true', 'false'], ['Yes', 'No'], ['yes', 'no'], ['above', 'below'], ['opens up', 'opens down'], ['upward', 'downward'], ['left', 'right'], ['vertical', 'horizontal'], ['Student A', 'Student B'], ['stretch', 'shrink'], ['growth', 'decay'], ['inverse', 'identity'], ['Linear', 'Exponential'], ['linear', 'exponential']];
+  const WORDS = [['no solution', 'one solution'], ['infinitely many solutions', 'no solution'], ['no real solutions', 'two real solutions'], ['one real solution', 'two real solutions'], ['increasing', 'decreasing'], ['positive', 'negative'], ['maximum', 'minimum'], ['even', 'odd'], ['True', 'False'], ['true', 'false'], ['Yes', 'No'], ['yes', 'no'], ['above', 'below'], ['opens up', 'opens down'], ['upward', 'downward'], ['right', 'left'], ['up', 'down'], ['left', 'right'], ['vertical', 'horizontal'], ['Student A', 'Student B'], ['stretch', 'shrink'], ['growth', 'decay'], ['inverse', 'identity'], ['Linear', 'Exponential'], ['linear', 'exponential']];
   const ROMAN = ['I', 'II', 'III', 'IV'];
   const norm = (s) => String(s).replace(/\\[,;! ]|\s+/g, '').replace(/−/g, '-').replace(/\\left|\\right|\\dfrac|\\tfrac/g, (m) => (m === '\\dfrac' || m === '\\tfrac' ? '\\frac' : '')).toLowerCase();
   const shape = (s) => String(s).replace(/\d+(\.\d+)?/g, '#').replace(/\s+/g, '');
@@ -55,7 +55,8 @@
   function fracSwap(s) {
     const m = /\\frac\{([^{}]*)\}\{([^{}]*)\}/.exec(s); if (!m) return [];
     if (m[1] === m[2]) return [];
-    return [s.slice(0, m.index) + '\\frac{' + m[2] + '}{' + m[1] + '}' + s.slice(m.index + m[0].length)];
+    const sw = m[1] === '1' ? m[2] : '\\frac{' + m[2] + '}{' + m[1] + '}';
+    return [s.slice(0, m.index) + sw + s.slice(m.index + m[0].length)];
   }
   function tweaks(s) {
     const out = [];
@@ -88,6 +89,7 @@
     const has = (w) => new RegExp('(^|[^A-Za-z])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^A-Za-z])').test(s);
     const sub = (a, b) => s.replace(new RegExp('(^|[^A-Za-z])' + a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=$|[^A-Za-z])', 'g'), (m, p1) => p1 + b);
     WORDS.forEach(([a, b]) => { if (has(a)) out.push(sub(a, b)); else if (has(b)) out.push(sub(b, a)); });
+    { let all = s, n = 0; WORDS.forEach(([a, b]) => { const t = new RegExp('(^|[^A-Za-z])(' + a + '|' + b + ')(?=$|[^A-Za-z])', 'g'); all = all.replace(t, (m, p1, w) => { n++; return p1 + (w === a ? b : a); }); }); if (n > 1) out.push(all); }
     const q = /Quadrant (I{1,3}|IV)\b/.exec(s); if (q) ROMAN.filter((r) => r !== q[1]).forEach((r) => out.push(s.replace(q[0], 'Quadrant ' + r)));
     if (/\\pm/.test(s)) out.push(s.replace('\\pm', '+'));
     return out;
@@ -122,6 +124,14 @@
     while ((m = re.exec(s))) out.push(s.slice(0, m.index) + m[1] + (m[2] === '+' ? '-' : '+') + m[3] + s.slice(m.index + 3));
     return out;
   }
+  function logSwaps(s) {
+    const out = [];
+    let m = /^(.*?)\\log_\{\s*([^{}]+?)\s*\}\s*\(\s*([^()]+?)\s*\)\s*=\s*(.+)$/.exec(s);
+    if (m) { const [, pre, A, B, C] = m; [[B, A, C], [A, C, B], [C, B, A]].forEach(([a, b, c]) => out.push(pre + '\\log_{ ' + a + ' }( ' + b + ' ) = ' + c)); }
+    m = /^(.*?)([^\s^{}=]+|\\frac\{[^{}]+\}\{[^{}]+\})\^\{\s*([^{}]+?(?:\{[^{}]*\}[^{}]*)*)\s*\}\s*=\s*(.+)$/.exec(s);
+    if (m) { const [, pre, A, C, B] = m; const W = (x) => (/\\frac|^-/.test(x) ? '\\left(' + x + '\\right)' : x); [[B, C, A], [C, A, B], [A, B, C]].forEach(([a, c, b]) => out.push(pre + W(a) + '^{ ' + c + ' } = ' + b)); }
+    return out;
+  }
   function pis(s) { return /\\pi/.test(s) && !/\\frac\{\\pi\}/.test(s) ? [s.replace('\\pi', '\\frac{\\pi}{2}'), s.replace('\\pi', '2\\pi'), s.replace('\\pi', '\\frac{3\\pi}{2}')] : []; }
 
   function makeChoices(correct, siblings, seed, n) {
@@ -134,7 +144,8 @@
     const sibSame = sib.filter((x) => shape(x) === sh), sibOther = sib.filter((x) => shape(x) !== sh);
     const cat = catOptions(correct, siblings); if (cat) n = Math.min(n, cat.size);
     const zero = tokens(correct).some((t) => t.t === '0' && !isDeg(correct, t)) ? ['1', '-1', '2', '-2'].map((v) => correct.replace(/0/, v)) : [];
-    const groups = [cat ? shuf(cat.opts) : [], shuf(signFlips(correct)), shuf(words(correct)), shuf(fracSwap(correct)), shuf(tweaks(correct).filter((c) => Math.abs(c.length - correct.length) < 6)), shuf(numSwap(correct)), sibSame, shuf(tweaks(correct)), shuf(opFlips(correct)), shuf(letterSwap(correct)), shuf(pis(correct)), shuf(zero), sibOther];
+    const form = /\\log_\{|\^\{.*\}\s*=\s*[^=]+$/.test(correct) && /^[^=]*=[^=]*$/.test(correct) && !cat;
+    const groups = form ? [shuf(logSwaps(correct)), shuf(fracSwap(correct)), sibSame, sibOther] : [cat ? shuf(cat.opts) : [], shuf(logSwaps(correct)), shuf(signFlips(correct)), shuf(words(correct)), shuf(fracSwap(correct)), shuf(tweaks(correct).filter((c) => Math.abs(c.length - correct.length) < 6)), shuf(numSwap(correct)), sibSame, shuf(tweaks(correct)), shuf(logSwaps(correct)), shuf(opFlips(correct)), shuf(letterSwap(correct)), shuf(pis(correct)), shuf(zero), sibOther];
     // interleave: one sibling early so the set doesn't look like pure arithmetic slips
     let guard = 0;
     while (picked.length < n - 1 && guard++ < 400) {
@@ -154,5 +165,15 @@
     // keep a natural order for purely numeric answers
     return { choices, correct: pos };
   }
-  return { makeChoices, eligible, norm };
+  // Use wrong answers written into the template itself (they are better than guessed ones).
+  function assemble(correct, distractors, seed, n) {
+    n = n || 4; const rng = E.makeRng(String(seed) + '|asm');
+    const seen = new Set([norm(correct)]), pool = [];
+    (distractors || []).forEach((d) => { const k = norm(d); if (k && !seen.has(k)) { seen.add(k); pool.push(d); } });
+    if (pool.length < 2) return null;
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    const choices = pool.slice(0, n - 1), pos = Math.floor(rng() * (choices.length + 1)); choices.splice(pos, 0, correct);
+    return { choices, correct: pos };
+  }
+  return { makeChoices, assemble, eligible, norm };
 });

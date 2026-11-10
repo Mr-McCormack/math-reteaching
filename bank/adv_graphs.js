@@ -28,6 +28,19 @@
   T('exp-graph', 'challenge', r`Write an exponential function $ f(x) = a\cdot b^x $ whose graph is shown below.`, r`f(x) = {{a}}\left(\frac{1}{2}\right)^{x}`, { params: { a: '2,4,6,8,10,12' }, graphs: [g(ex('a', 0.5, 0), { view: [-4, 4, -2, 14], points: [{ x: 0, y: 'a', label: 'coords' }, { x: 1, y: 'a/2', label: 'coords' }] })] });
   T('exp-graph', 'challenge', r`The graph of $ f(x) = a\cdot b^x {{k:sign}} $ is shown with its asymptote. Find $ a $ and $ b $... write the function.`.replace(r` Find $ a $ and $ b $... write the function.`, ' Write the function.').replace(r`$ f(x) = a\cdot b^x {{k:sign}} $`, 'the function'), r`f(x) = {{a}}\cdot {{b}}^{x}{{k:sign}}`, { params: { a: '2..3', b: '2,3', k: '-3..3 !0' }, constraints: ['a*b+k <= 9'], graphs: [g(ex('a', 'b', 'k'), { view: [-4, 4, -6, 10], asym: [{ y: 'k' }], points: [{ x: 0, y: 'a+k', label: 'coords' }, { x: 1, y: 'a*b+k', label: 'coords' }] })] });
 
+  const endG = r`\text{As } x\to-\infty,\ f(x)\to {{k}};\ \text{as } x\to\infty,\ f(x)\to\infty`;
+  const endD = r`\text{As } x\to-\infty,\ f(x)\to\infty;\ \text{as } x\to\infty,\ f(x)\to {{k}}`;
+  T('exp-graph', 'parallel', 'Describe the end behavior of the function graphed below.', endG, { params: GR, graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'parallel', 'Describe the end behavior of the function graphed below.', endD, { params: DC, derived: dcd, graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'parallel', 'On what interval is the function graphed below increasing?', r`(-\infty, \infty)`, { params: GR, graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'parallel', 'On what interval is the function graphed below decreasing?', r`(-\infty, \infty)`, { params: DC, derived: dcd, graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'parallel', 'True or false: the graph below shows exponential growth.', r`\text{False}`, { params: DC, derived: dcd, graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'parallel', 'True or false: the graph below shows exponential growth.', r`\text{True}`, { params: GR, graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'parallel', r`The graph below is $ f(x) = a\cdot b^x {{k:sign}} $. Which could be the value of the base $ b $?`, r`b = {{b}}`, { params: Object.assign({}, GR, { k: '-3..3 !0' }), distractors: [r`b = \frac{1}{ {{b}} }`, r`b = -{{b}}`, r`b = {{b+2}}`], graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'parallel', r`The graph below is $ f(x) = a\cdot b^x {{k:sign}} $. Which could be the value of the base $ b $?`, r`b = \frac{1}{ {{q}} }`, { params: Object.assign({}, DC, { k: '-3..3 !0' }), derived: dcd, distractors: [r`b = {{q}}`, r`b = -{{q}}`, r`b = \frac{ {{q+1}} }{ {{q}} }`], graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'challenge', r`The graph below is $ f(x) = a\cdot b^x {{k:sign}} $. Which could be the value of the base $ b $?`, r`b = \frac{1}{ {{q}} }`, { params: Object.assign({}, DC, { k: '-3..3 !0' }), derived: dcd, distractors: [r`b = {{q}}`, r`b = -{{q}}`, r`b = \frac{ {{q+1}} }{ {{q}} }`], graphs: [exv('a', 'b', 'k')] });
+  T('exp-graph', 'challenge', 'Describe the end behavior of the function graphed below.', endD, { params: DC, derived: dcd, graphs: [exv('a', 'b', 'k')] });
+
   /* ================= logarithmic graphs ================= */
   skill('log-graph', 'Reading graphs of logarithmic functions', LG);
   const LV = [-6, 10, -6, 6];

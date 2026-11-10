@@ -73,9 +73,17 @@ for (const t of RB.templates) {
         if ((m = P.match(/^Write \\log_\{ ?(\d+) ?\}\( ?(x|\d+) ?\) = (-?\d+|x) in exponential form\.$/))) {
           const [, b, y, k] = m; const want = k === 'x' ? `${b}^{x} = ${y}` : `${b}^{ ${k} } = ${y}`; if (A.replace(/ /g, '') !== want.replace(/ /g, '')) ck(t, g, 'to exp');
           if (/^\d+$/.test(y) && k !== 'x' && Math.pow(+b, +k) !== +y) ck(t, g, 'false statement');
-        } else if ((m = P.match(/^Write (\d+)\^\{ ?(-?\d+|x) ?\} = (\d+|x) in logarithmic form\.$/))) {
+        } else if ((m = P.match(/^Write (\d+)\^\{ ?(-?\d+|x) ?\} = (\d+|x) in logarithmic form\.$/)) && m[1] !== '10') {
           const [, b, k, y] = m; const want = k === 'x' ? `x = \\log_{ ${b} }( ${y} )` : `\\log_{ ${b} }( ${y} ) = ${k}`; if (A.replace(/ /g, '') !== want.replace(/ /g, '')) ck(t, g, 'to log');
           if (/^\d+$/.test(y) && k !== 'x' && Math.pow(+b, +k) !== +y) ck(t, g, 'false statement 2');
+        } else if ((m = P.match(/^Write \\log_\{ ?(\d+) ?\}\( ?(\d+) ?\) = \\frac\{ (\d+) \}\{ (\d+) \} in exponential form\.$/))) {
+          const [, b, y, n, d] = m; if (Math.abs(Math.pow(+b, +n / +d) - +y) > 1e-6 || A.replace(/ /g, '') !== `${b}^{\\frac{${n}}{${d}}}=${y}`) ck(t, g, 'frac to exp');
+        } else if ((m = P.match(/^Write (\d+)\^\{\\frac\{ (\d+) \}\{ (\d+) \}\} = (\d+) in logarithmic form\.$/))) {
+          const [, b, n, d, y] = m; if (Math.abs(Math.pow(+b, +n / +d) - +y) > 1e-6 || A.replace(/ /g, '') !== `\\log_{${b}}(${y})=\\frac{${n}}{${d}}`) ck(t, g, 'frac to log');
+        } else if ((m = P.match(/^Write \\log\((\d+)\) = (\d+) in exponential form \(base 10\)\.$/))) {
+          if (Math.pow(10, +m[2]) !== +m[1] || A.replace(/ /g, '') !== `10^{${m[2]}}=${m[1]}`) ck(t, g, 'log10 to exp');
+        } else if ((m = P.match(/^Write 10\^\{ ?(\d+) ?\} = (\d+) in logarithmic form\.$/))) {
+          if (Math.pow(10, +m[1]) !== +m[2] || A.replace(/ /g, '') !== `\\log(${m[2]})=${m[1]}`) ck(t, g, 'log10 to log');
         } else if (!/ln|e\^/.test(P)) throw new Error('unrecognized convert prompt');
       }
       if (t.skill === 'exp-model') {

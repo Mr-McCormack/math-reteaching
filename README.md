@@ -76,3 +76,8 @@ Files: `builder/builder.js` (picks the questions), `builder/export.js` (zip, LaT
 ### Multiple choice
 
 Each question in the Test builder can be **Free response** or **Multiple choice** (set "New questions are…" before adding, change any question's Format, or use *Make all multiple choice*). Wrong choices are made automatically from common mistakes (sign errors, flipped fractions, off-by-one numbers, opposite words, wrong quadrant or angle, answers from other numbers of the same question). The correct choice is marked ✓ in the builder; *Different choices* re-rolls just the wrong ones, and A/B/C/D versions each get their own numbers and choices. Questions that can't sensibly be multiple choice (graph it, explain it, very long answers) stay free response and say so. Always skim the choices once before printing. Logic: `builder/choices.js`.
+
+## Unit 2 exponentials batch (adv_exp.js)
+New skills: exp-base, exp-range, exp-trans, exp-gd, exp-int, exp-calc, exp-eq-log, inv-fn; extra templates added to exp-graph (adv_graphs.js), exp-eq, log-convert, log-eval (advanced.js).
+Templates can now give `distractors:[...]` (hand-written wrong choices for multiple choice). The formula language gained ln, log10, logb(b,x), ex(x), pw(a,x), pipow(a) for decimal answers (use with `:dec2`).
+Checker: `node tools/verify-exp.js`.
