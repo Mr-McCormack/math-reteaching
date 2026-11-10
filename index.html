@@ -121,6 +121,7 @@ body[data-tab=sheets] #printRoot{display:block}
   .keysheet{break-inside:avoid;margin-bottom:.25in}
   body[data-print=sheets] #keys{display:none}
   body[data-print=keys] #sheets{display:none}
+  body[data-only] .sheet:not(.on){display:none!important}
 }
 @media print{.dmline{color:#000}}
 </style>
@@ -145,6 +146,7 @@ body[data-tab=sheets] #printRoot{display:block}
 <script src="builder/choices.js"></script>
 <script src="builder/builder.js"></script>
 <script src="builder/export.js"></script>
+<script src="builder/pdfeach.js"></script>
 <script src="graphs.js"></script>
 <script src="deltamath/skills.js"></script>
 <script src="deltamath/map.js"></script>
@@ -309,7 +311,7 @@ function viewSheets(){
   h += '<label>Challenge <input type="number" min="0" max="3" style="width:58px" data-ch="cnt" data-t="challenge" value="' + k.challenge + '"></label></div>';
   h += '<div class="row" style="margin-top:8px"><label>Student <select data-ch="who"><option value="">All students</option>' + c.roster.filter((s) => s.missed.length).map((s) => '<option' + (state.ui.who === s.name ? ' selected' : '') + '>' + esc(s.name) + '</option>').join('') + '</select></label>';
   h += '<label>Set code <input type="text" size="9" data-ch="setCode" value="' + esc(t.setCode) + '"></label><button class="btn sm" data-act="newSet">New set of numbers</button>';
-  h += '<label>Page breaks <select data-ch="pageMode"><option value="keep"' + (state.ui.pageMode !== 'one' ? ' selected' : '') + '>Keep each item together</option><option value="one"' + (state.ui.pageMode === 'one' ? ' selected' : '') + '>Start every item on a new page</option></select></label><label><input type="checkbox" data-ch="dmLine"' + (state.ui.dmLine ? ' checked' : '') + '> Add “assign on DeltaMath” line</label><span class="grow"></span><button class="btn pri" data-act="print" data-w="sheets">Print student sheets</button><button class="btn" data-act="print" data-w="keys">Print answer keys</button></div>';
+  h += '<label>Page breaks <select data-ch="pageMode"><option value="keep"' + (state.ui.pageMode !== 'one' ? ' selected' : '') + '>Keep each item together</option><option value="one"' + (state.ui.pageMode === 'one' ? ' selected' : '') + '>Start every item on a new page</option></select></label><label><input type="checkbox" data-ch="dmLine"' + (state.ui.dmLine ? ' checked' : '') + '> Add “assign on DeltaMath” line</label><span class="grow"></span><button class="btn pri" data-act="print" data-w="sheets">Print student sheets</button><button class="btn pri" data-act="zipPdfs">Download a .zip of one PDF per student</button><button class="btn" data-act="printEach">Or: save each one from the print window</button><button class="btn" data-act="print" data-w="keys">Print answer keys</button></div>';
   h += '<p class="muted">Same set code + same student = the same sheet every time, so a lost sheet can be reprinted. Change the code for a retake.</p></div>';
   // groups
   const groups = {};
@@ -333,7 +335,7 @@ function buildSheets(){
   let sh = '', ky = '';
   if (!pk.length) sh = '<div class="card">No student has any missed items marked.</div>';
   pk.forEach((p) => {
-    sh += '<section class="sheet"><div class="meta"><div><h1>Reteach Practice</h1><div>' + esc(p.student) + '</div></div><small style="text-align:right">' + esc(t.name) + '<br>' + esc(date) + '</small></div>';
+    sh += '<section class="sheet" data-student="' + esc(p.student) + '"><div class="meta"><div><h1>Reteach Practice</h1><div>' + esc(p.student) + '</div></div><small style="text-align:right">' + esc(t.name) + '<br>' + esc(date) + '</small></div>';
     ky += '<section class="keysheet"><h2>' + esc(p.student) + ' <small style="font-weight:400">— ' + esc(t.name) + ', set ' + esc(t.setCode) + '</small></h2>';
     p.items.forEach((it) => {
       sh += '<div class="item"><h3>Item ' + esc(it.n) + (it.name ? ' · ' + esc(it.name) : '') + '</h3>';
@@ -725,7 +727,31 @@ const A = {
   addStudent(){ const n = prompt('Student name:'); if (!n || !n.trim()) return; curClass().roster.push({ name:n.trim(), missed:[] }); save(); render(); },
   delStudent(b){ const c = curClass(); if (confirm('Remove ' + c.roster[+b.dataset.s].name + '?')) { c.roster.splice(+b.dataset.s, 1); save(); render(); } },
   newSet(){ curTest().setCode = uid().slice(0, 4).toUpperCase(); save(); render(); },
-  print(b){ document.body.dataset.print = b.dataset.w; setTimeout(() => window.print(), 50); },
+  print(b){ const t = curTest(), old = document.title; document.title = (t ? t.name : 'Reteach Sheets'); document.body.dataset.print = b.dataset.w; setTimeout(() => { window.print(); document.title = old; }, 50); },
+  async zipPdfs(){
+    const t = curTest(), secs = [...document.querySelectorAll('#sheets .sheet[data-student]')];
+    if (!secs.length) return toast('No student sheets to save yet');
+    const safe = (x) => x.replace(/[\\\/:*?"<>|]+/g, '-').trim(), used = {};
+    try {
+      const pdfs = await ReteachPDF.studentPdfs(secs.map((x) => ({ name:x.dataset.student, el:x })), (i, n, nm) => toast(i < n ? 'Making PDF ' + (i + 1) + ' of ' + n + ' — ' + nm + '…' : 'Zipping…'));
+      const files = pdfs.map((p) => { let nm = safe(p.name) + ' - ' + safe(t.name), k = used[nm] = (used[nm] || 0) + 1; if (k > 1) nm += ' (' + k + ')'; return { name:nm + '.pdf', data:p.data }; });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([ReteachExport.zip(files)], { type:'application/zip' })); a.download = safe(t.name) + ' - Reteaching PDFs.zip'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast('Done — ' + files.length + ' PDFs in the zip');
+    } catch (e) { toast('Could not make the PDFs here (' + e.message + '). Use the print-window option instead.'); }
+  },
+  async printEach(){
+    const t = curTest(), secs = [...document.querySelectorAll('#sheets .sheet[data-student]')];
+    if (!secs.length) return toast('No student sheets to save yet');
+    if (!confirm('This opens the print window once per student (' + secs.length + ' in all). In each one choose “Save as PDF” — the file name is already filled in as “Student Name - ' + t.name + '”. Continue?')) return;
+    const old = document.title, safe = (x) => x.replace(/[\\\/:*?"<>|]+/g, '-').trim();
+    document.body.dataset.print = 'sheets';
+    for (let i = 0; i < secs.length; i++) {
+      secs.forEach((x) => x.classList.remove('on')); secs[i].classList.add('on'); document.body.dataset.only = '1';
+      document.title = safe(secs[i].dataset.student) + ' - ' + safe(t.name);
+      await new Promise((res) => { const done = () => { window.removeEventListener('afterprint', done); res(); }; window.addEventListener('afterprint', done); setTimeout(() => window.print(), 60); });
+    }
+    secs.forEach((x) => x.classList.remove('on')); delete document.body.dataset.only; document.title = old;
+  },
   bankSkill(b){ state.ui.bankSkill = b.dataset.id; save(); render(); },
   reroll(b){ previewN[b.dataset.id] = (previewN[b.dataset.id] || 0) + 1; render(); },
   newTpl(){ openEditor(null, state.ui.bankSkill); },
