@@ -73,6 +73,15 @@ dialog::backdrop{background:rgba(20,25,40,.45)}
 .chip button{border:0;background:none;cursor:pointer;color:var(--mute);font-size:14px;padding:0 4px}
 .dmline{margin-top:6px;font-size:11.5px;color:#333;border-top:1px dotted #999;padding-top:3px}
 .dmres{max-height:50vh;overflow:auto;border:1px solid var(--line);border-radius:8px}.dmres .r{display:flex;gap:8px;align-items:center;padding:4px 8px;border-bottom:1px solid var(--line)}.dmres .r .nm{flex:1}
+/* test builder */
+.bq{display:flex;gap:10px;border-top:1px solid var(--line);padding:10px 0}.bn{font-weight:700;min-width:1.8em;color:var(--brand)}.bb{flex:1;min-width:0}
+.bprev{background:#f9fafb;border:1px dashed var(--line);border-radius:8px;padding:8px 12px;margin:6px 0}.bprev .graphs svg,.bprow .graphs svg,.bprev .graphs.one svg{width:190px!important}
+.bprow{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px}
+.tsheet .tt{text-align:center;margin-bottom:6px}.tsheet .tt h1{font-size:18pt;margin:2px 0}.tsheet .ts{font-size:11.5pt}
+.tname{display:flex;gap:18px;align-items:flex-end;margin:10px 0 8px;font-size:11.5pt}.tname i{display:inline-block;width:2.4in;border-bottom:1px solid #000;height:1em}.tname i.s{width:1in}.tname .tv{margin-left:auto;font-weight:700}
+.tins{margin:4px 0;font-size:11pt}
+.mc{margin:4px 0 0 .2in}.mc .ch{padding:1px 0}.mc .ch b{display:inline-block;min-width:1.5em}.mc.row4{display:flex;flex-wrap:wrap}.mc.row4 .ch{flex:1 1 24%;min-width:1.3in}.bprev .mc .ok{color:#14663a;font-weight:600}.bprev .mc .ok i{font-style:normal}
+.tq{break-inside:avoid;margin-bottom:6px}.tq .q{display:flex;gap:8px}.tq .q b{min-width:1.7em}.tq .q>div{flex:1}.tpts{font-size:9.5pt;color:#555;white-space:nowrap}
 #printRoot{display:none}
 body[data-tab=sheets] #printRoot{display:block}
 .sheet,.keysheet{background:#fff;border:1px solid var(--line);border-radius:6px;padding:.55in .6in;margin:0 auto 18px;max-width:8.5in;font-size:12pt;line-height:1.35;color:#000}
@@ -133,6 +142,9 @@ body[data-tab=sheets] #printRoot{display:block}
 <script src="vendor/katex/katex.min.js"></script>
 <script src="engine.js"></script>
 <script src="sheets.js"></script>
+<script src="builder/choices.js"></script>
+<script src="builder/builder.js"></script>
+<script src="builder/export.js"></script>
 <script src="graphs.js"></script>
 <script src="deltamath/skills.js"></script>
 <script src="deltamath/map.js"></script>
@@ -166,7 +178,7 @@ const TIER_NAME = { worked:'Worked example', easier:'Warm-up (easier)', parallel
 
 /* ---------------- state ---------------- */
 let state = defaults(), shared = { skills: [], templates: [] }, storageOK = true;
-function defaults(){ return { tests: [], bank: { custom: [], hidden: [], over: {}, skills: [] }, counts: { worked:1, easier:1, parallel:2, challenge:0 }, dm: { map: {} }, ui: { tab:'tests', testId:null, classId:null, bankSkill:null, tierFilter:'all', showHidden:false } }; }
+function defaults(){ return { tests: [], builds: [], bank: { custom: [], hidden: [], over: {}, skills: [] }, counts: { worked:1, easier:1, parallel:2, challenge:0 }, dm: { map: {} }, ui: { tab:'tests', testId:null, classId:null, bankSkill:null, tierFilter:'all', showHidden:false } }; }
 function load(){ try { const raw = localStorage.getItem(LS_KEY); if (raw) state = Object.assign(defaults(), JSON.parse(raw)); } catch(e){ storageOK = false; } }
 function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){ storageOK = false; } }
 function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2600); }
@@ -204,7 +216,7 @@ function ensureSelection(){
 }
 
 /* ---------------- tabs ---------------- */
-const TABS = [['tests','1 · Tests'],['grid','2 · Mark misses'],['sheets','3 · Print sheets'],['dm','4 · DeltaMath'],['bank','Question bank']];
+const TABS = [['tests','1 · Tests'],['grid','2 · Mark misses'],['sheets','3 · Print sheets'],['dm','4 · DeltaMath'],['build','Test builder'],['bank','Question bank']];
 function render(){
   try { renderInner(); } catch (e) {
     console.error(e);
@@ -222,9 +234,9 @@ function renderInner(){
   ensureSelection();
   document.body.dataset.tab = state.ui.tab;
   $('#nav').innerHTML = TABS.map(([k, n]) => '<button data-act="tab" data-k="' + k + '" class="' + (state.ui.tab === k ? 'on' : '') + '">' + n + '</button>').join('');
-  const v = { tests:viewTests, grid:viewGrid, sheets:viewSheets, dm:viewDM, bank:viewBank }[state.ui.tab];
+  const v = { tests:viewTests, grid:viewGrid, sheets:viewSheets, dm:viewDM, build:viewBuild, bank:viewBank }[state.ui.tab];
   $('#app').innerHTML = (storageOK ? '' : '<div class="notice">This browser is blocking saved data, so nothing will be kept after you close the page. Use “Back up everything” before you leave.</div>') + v();
-  if (state.ui.tab === 'sheets') buildSheets(); else { $('#sheets').innerHTML = ''; $('#keys').innerHTML = ''; }
+  if (state.ui.tab === 'sheets') buildSheets(); else if (state.ui.tab === 'build') buildBuildPrint(); else { $('#sheets').innerHTML = ''; $('#keys').innerHTML = ''; }
   if (state.ui.tab === 'dm' && state.ui.dmView === 'inv') updateInvResults();
 }
 function testPicker(){
@@ -765,6 +777,192 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('change', (e) => { const el = e.target, k = el.dataset && el.dataset.ch; if (!k || !C[k]) return; const r = C[k](el); save(); if (r !== 'noRender') render(); });
 window.addEventListener('afterprint', () => { delete document.body.dataset.print; });
+
+/* ---------------- Test builder ---------------- */
+const BLD = ReteachBuilder, XP = ReteachExport;
+const curBuild = () => (state.builds || []).find((b) => b.id === state.ui.buildId) || null;
+const BTIERS = [['easier', 'Warm-up'], ['parallel', 'Standard'], ['challenge', 'Challenge']];
+const BT_NAME = { easier:'warm-up', parallel:'standard', challenge:'challenge', worked:'worked example' };
+function newBuildObj(name){ return { id:uid(), defaultType:'free', name, school:'', course:'', teacher:'', instructions:'Show all work. Answers without work may not receive credit.', versions:1, shuffle:true, showPoints:true, gradeSheet:true, seed:uid().slice(0, 4).toUpperCase(), slots:[] }; }
+function builtVersions(b){
+  const raw = allTemplatesRaw(), byId = {}; raw.forEach((t) => { byId[t.id] = t; });
+  return BLD.build({ slots:b.slots, versions:b.versions, seed:b.seed, templates:allTemplates(), templatesById:byId, shuffle:b.shuffle });
+}
+function buildDoc(b){ return { title:b.name, school:b.school, course:b.course, teacher:b.teacher, instructions:b.instructions, showPoints:b.showPoints, gradeSheet:b.gradeSheet, versions:builtVersions(b) }; }
+function addSlot(b, o){ const mc = b.defaultType === 'mc'; b.slots.push(Object.assign({ id:uid(), skill:'', tiers:['parallel'], pts:mc ? 2 : 4, reroll:0, type:mc ? 'mc' : 'free' }, o)); }
+function viewBuild(){
+  state.builds = state.builds || [];
+  if (!curBuild() && state.builds.length) state.ui.buildId = state.builds[0].id;
+  const b = curBuild();
+  let h = '<div class="card"><div class="row"><h2 class="grow">Test builder</h2>' + (state.builds.length ? '<select data-ch="pickBuild">' + state.builds.map((x) => '<option value="' + x.id + '"' + (b && x.id === b.id ? ' selected' : '') + '>' + esc(x.name) + '</option>').join('') + '</select>' : '') + '<button class="btn sm" data-act="newBuild">+ New test</button>' + (b ? '<button class="btn sm" data-act="dupBuild">Duplicate</button><button class="btn sm" data-act="delBuild">Delete</button>' : '') + '</div><p class="muted" style="margin:6px 0 0">Builds a test from the same question bank as the Reteach sheets. Each version (A, B, C, D) gets different numbers. Nothing here changes your Reteach tests.</p></div>';
+  if (!b) return h + '<div class="card">Click <b>+ New test</b> to start.</div>';
+  const f = (k, label, w, ph) => '<label>' + label + ' <input type="text" style="width:' + (w || 200) + 'px" data-ch="bField" data-f="' + k + '" value="' + esc(b[k] || '') + '"' + (ph ? ' placeholder="' + esc(ph) + '"' : '') + '></label>';
+  h += '<div class="card"><h3 style="margin-top:0">Test details</h3><div class="row">' + f('name', 'Title', 230) + f('school', 'School', 190, 'optional') + f('course', 'Course', 190, 'e.g. Advanced Algebra') + f('teacher', 'Teacher line', 190, 'optional') + '</div>';
+  h += '<div class="row" style="margin-top:8px"><label style="flex:1;min-width:280px">Instructions <input type="text" style="width:100%" data-ch="bField" data-f="instructions" value="' + esc(b.instructions || '') + '"></label></div>';
+  h += '<div class="row" style="margin-top:8px"><label>Versions <select data-ch="bField" data-f="versions" data-num="1">' + [1, 2, 3, 4].map((n) => '<option value="' + n + '"' + (b.versions === n ? ' selected' : '') + '>' + (n === 1 ? '1 (just A)' : n + ' (A–' + 'ABCD'[n - 1] + ')') + '</option>').join('') + '</select></label>' +
+    '<label>New questions are <select data-ch="bField" data-f="defaultType"><option value="free"' + (b.defaultType !== 'mc' ? ' selected' : '') + '>free response</option><option value="mc"' + (b.defaultType === 'mc' ? ' selected' : '') + '>multiple choice</option></select></label><label><input type="checkbox" data-ch="bField" data-f="shuffle"' + (b.shuffle ? ' checked' : '') + '> Different question order in B, C, D</label><label><input type="checkbox" data-ch="bField" data-f="showPoints"' + (b.showPoints ? ' checked' : '') + '> Show points</label><label><input type="checkbox" data-ch="bField" data-f="gradeSheet"' + (b.gradeSheet ? ' checked' : '') + '> Grading sheet (LaTeX)</label><button class="btn sm" data-act="bNewNumbers">New numbers for everything</button></div></div>';
+  // add questions
+  const tests = state.tests.filter((t) => t.items.some((i) => i.skill));
+  h += '<div class="card"><h3 style="margin-top:0">Add questions</h3><div class="row"><button class="btn pri" data-act="bPicker">Search the question bank…</button><span class="muted">see each question before you add it</span></div>' +
+    '<div class="row" style="margin-top:10px"><label>By skill <select id="bSkill">' + skillOptions('') + '</select></label><button class="btn sm" data-act="bAddSkill">Add a question for this skill</button>' +
+    (tests.length ? '<span class="grow"></span><label>From a Reteach test <select id="bTest">' + tests.map((t) => '<option value="' + t.id + '">' + esc(t.name) + '</option>').join('') + '</select></label><button class="btn sm" data-act="bFromTest">Add one question per item</button>' : '') + '</div></div>';
+  // the list
+  const vs = b.slots.length ? builtVersions(b) : [];
+  const pv = Math.min(state.ui.bver || 0, Math.max(0, vs.length - 1));
+  const tot = vs.length ? BLD.totalPoints(vs[0]) : 0;
+  h += '<div class="card"><div class="row"><h3 class="grow" style="margin:0">Questions (' + b.slots.length + (b.showPoints ? ', ' + tot + ' points' : '') + ')</h3>' + (b.slots.length ? '<button class="btn sm" data-act="bAllType" data-t="mc">Make all multiple choice</button><button class="btn sm" data-act="bAllType" data-t="free">Make all free response</button>' : '') + (vs.length > 1 ? '<label>Preview version <select data-ch="bver">' + vs.map((v, i) => '<option value="' + i + '"' + (i === pv ? ' selected' : '') + '>' + v.label + '</option>').join('') + '</select></label>' : '') + '</div>';
+  if (!b.slots.length) h += '<p class="muted">No questions yet. Use the buttons above.</p>';
+  b.slots.forEach((s, i) => {
+    const q = vs[pv].questions.find((x) => x.slotId === s.id), pinned = !!s.tplId;
+    h += '<div class="bq"><div class="bn">' + (i + 1) + '</div><div class="bb"><div class="row" style="gap:6px"><b>' + esc(skillName(s.skill)) + '</b>' + (pinned ? '<span class="pill">specific question</span><button class="btn sm" data-act="bUnpin" data-i="' + i + '" title="Let the builder choose any question from this skill">Unpin</button>' : BTIERS.map(([k, n]) => '<label style="font-size:12.5px"><input type="checkbox" data-ch="bTier" data-i="' + i + '" data-t="' + k + '"' + (s.tiers.includes(k) ? ' checked' : '') + '> ' + n + '</label>').join('')) + '</div>' +
+      '<div class="bprev">' + (q ? rich(q.prompt) + graphsHTML(q.graphs) + (q.type === 'mc' ? choicesHTML(q, true) : '') : '') + '</div><div class="muted" style="font-size:12.5px">Answer: ' + (q && q.type === 'mc' ? q.letter + '  ' : '') + (q && q.answer ? kx(q.answer) : '—') + (vs.length > 1 ? ' · in version ' + vs[pv].label + ' this is question ' + (q ? q.n : '?') : '') + '</div>' +
+      '<div class="row" style="margin-top:4px;gap:6px"><label style="font-size:12.5px">Format <select data-ch="bSlot" data-i="' + i + '" data-f="type"><option value="free"' + (s.type !== 'mc' ? ' selected' : '') + '>Free response</option><option value="mc"' + (s.type === 'mc' ? ' selected' : '') + '>Multiple choice</option></select></label>' + (s.type === 'mc' && q && q.type === 'mc' ? '<button class="btn sm" data-act="bNewChoices" data-i="' + i + '">Different choices</button>' : '') + (s.type === 'mc' && q && q.mcFailed ? '<span class="pill warn">can’t make choices for this one — it will print as free response</span>' : '') + '<label style="font-size:12.5px">Points <input type="number" min="0" style="width:54px" data-ch="bSlot" data-i="' + i + '" data-f="pts" value="' + (s.pts == null ? 4 : s.pts) + '"></label><label style="font-size:12.5px">Work space (in) <input type="number" min="0" step="0.1" style="width:60px" data-ch="bSlot" data-i="' + i + '" data-f="space" value="' + (q ? q.space : '') + '"></label>' +
+      '<button class="btn sm" data-act="bReroll" data-i="' + i + '">Different numbers</button><button class="btn sm" data-act="bUp" data-i="' + i + '"' + (i ? '' : ' disabled') + '>↑</button><button class="btn sm" data-act="bDown" data-i="' + i + '"' + (i < b.slots.length - 1 ? '' : ' disabled') + '>↓</button><button class="btn sm" data-act="bDel" data-i="' + i + '">Remove</button></div></div></div>';
+  });
+  h += '</div>';
+  if (b.slots.length) h += '<div class="card"><div class="row"><button class="btn pri" data-act="print" data-w="sheets">Print test' + (b.versions > 1 ? ' (all versions)' : '') + ' / save as PDF</button><button class="btn" data-act="print" data-w="keys">Print answer keys</button><button class="btn pri" data-act="bExport">Export…</button><button class="btn" data-act="bMakeRetest">Make a Reteach test from this</button></div><p class="muted" style="margin-bottom:0">Export gives you one .zip with Word (.docx, editable equations), LaTeX (exam class), and a Reteach test file. Making a Reteach test lets you mark misses and print practice sheets after you give this test.</p></div>';
+  return h;
+}
+function choicesHTML(q, mark){
+  const short = q.choices.every((c) => c.length <= 18) && q.choices.join('').length <= 70;
+  return '<div class="mc' + (short ? ' row4' : '') + '">' + q.choices.map((c, i) => '<div class="ch' + (mark && i === q.correct ? ' ok' : '') + '"><b>' + 'ABCD'[i] + '.</b> <span>' + kx(c) + '</span>' + (mark && i === q.correct ? ' <i>✓</i>' : '') + '</div>').join('') + '</div>';
+}
+function buildBuildPrint(){
+  const b = curBuild();
+  if (!b || !b.slots.length) { $('#sheets').innerHTML = ''; $('#keys').innerHTML = ''; return; }
+  const vs = builtVersions(b); let sh = '', ky = '';
+  vs.forEach((v) => {
+    const tot = BLD.totalPoints(v);
+    sh += '<section class="sheet tsheet"><div class="tt"><div class="ts">' + [b.school, b.course].filter(Boolean).map(esc).join(' · ') + '</div><h1>' + esc(b.name) + '</h1>' + (b.teacher ? '<div class="ts">' + esc(b.teacher) + '</div>' : '') + '</div>' +
+      '<div class="tname"><span>Name: <i></i></span><span>Date: <i class="s"></i></span><span>Period: <i class="s"></i></span><span class="tv">Version ' + v.label + '</span></div>' +
+      (b.instructions ? '<p class="tins">' + rich(b.instructions) + '</p>' : '') + (b.showPoints ? '<p class="tins"><b>Total: ' + tot + ' points</b></p>' : '');
+    ky += '<section class="keysheet"><h2>' + esc(b.name) + ' — Version ' + v.label + ' answer key</h2><div class="k">';
+    v.questions.forEach((q) => {
+      sh += '<div class="tq"><div class="q"><b>' + q.n + '.</b><div>' + rich(q.prompt) + graphsHTML(q.graphs) + (q.type === 'mc' ? choicesHTML(q, false) : '') + '</div>' + (b.showPoints ? '<span class="tpts">(' + q.pts + ' pt' + (+q.pts === 1 ? '' : 's') + ')</span>' : '') + '</div><div style="height:' + (+q.space || 1.4) + 'in"></div></div>';
+      ky += '<span><b>' + q.n + '</b> ' + (q.type === 'mc' ? '<b>' + q.letter + '</b> ' : '') + (q.answer ? kx(q.answer) : '') + '</span>';
+    });
+    sh += '</section>'; ky += '</div></section>';
+  });
+  $('#sheets').innerHTML = sh;
+  $('#keys').innerHTML = '<div style="max-width:8.5in;margin:0 auto 10px"><h2 style="margin:0">Answer keys (teacher copy)</h2></div>' + ky;
+}
+/* --- picker dialog: search the bank and see each question first --- */
+let bp = { q:'', unit:'', skill:'', tier:'', n:20, ex:{}, added:0 };
+function openBP(){
+  bp.added = 0; drawBP(); const d = $('#dlg');
+  if (!d.open) { d.addEventListener('close', () => { render(); }, { once:true }); d.showModal(); }
+}
+function drawBP(){
+  const b = curBuild(), sk = allSkills().filter((s) => !bp.unit || s.unit === bp.unit);
+  $('#dlg').innerHTML = '<div class="dlg" style="width:min(820px,94vw)"><div class="row"><h2 class="grow">Add questions to “' + esc(b.name) + '”</h2><span class="muted" id="bpCount"></span><button class="btn pri" data-bp="done">Done</button></div>' +
+    '<div class="row" style="margin:8px 0"><input type="text" id="bpQ" placeholder="Search (e.g. logarithm, matrix, z-score, asymptote)" style="flex:1;min-width:220px" value="' + esc(bp.q) + '">' +
+    '<select id="bpU"><option value="">All units</option>' + units().map((u) => '<option' + (u === bp.unit ? ' selected' : '') + '>' + esc(u) + '</option>').join('') + '</select>' +
+    '<select id="bpS"><option value="">All skills</option>' + sk.map((s) => '<option value="' + esc(s.id) + '"' + (s.id === bp.skill ? ' selected' : '') + '>' + esc(s.name) + '</option>').join('') + '</select>' +
+    '<select id="bpT"><option value="">Any level</option>' + BTIERS.concat([['worked', 'Worked example']]).map(([k, n]) => '<option value="' + k + '"' + (k === bp.tier ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></div>' +
+    '<div id="bpRes" style="max-height:62vh;overflow:auto"></div></div>';
+  updateBP(); const qi = $('#bpQ'); if (qi && document.activeElement !== qi && bp.q) { qi.focus(); qi.setSelectionRange(bp.q.length, bp.q.length); }
+}
+function bpMatches(){
+  const sn = {}; allSkills().forEach((s) => { sn[s.id] = s; });
+  const words = bp.q.toLowerCase().split(/\s+/).filter(Boolean), order = {}; allSkills().forEach((s, i) => { order[s.id] = i; });
+  return allTemplates().filter((t) => {
+    const s = sn[t.skill]; if (!s) return false;
+    if (bp.skill && t.skill !== bp.skill) return false; if (bp.unit && s.unit !== bp.unit) return false;
+    if (bp.tier ? t.tier !== bp.tier : t.tier === 'worked') return false;
+    if (!words.length) return true;
+    const hay = (s.name + ' ' + s.unit + ' ' + t.prompt + ' ' + (BT_NAME[t.tier] || '')).toLowerCase().replace(/\\[a-z]+|[{}$]/g, ' ');
+    return words.every((w) => hay.includes(w));
+  }).sort((a, c) => (order[a.skill] - order[c.skill]) || (E.TIERS.indexOf(a.tier) - E.TIERS.indexOf(c.tier)));
+}
+function updateBP(){
+  const box = $('#bpRes'); if (!box) return;
+  const rows = bpMatches(), b = curBuild(), cnt = $('#bpCount'); if (cnt) cnt.textContent = b.slots.length + ' in this test' + (bp.added ? ' (' + bp.added + ' added just now)' : '');
+  const sn = {}; allSkills().forEach((s) => { sn[s.id] = s; });
+  let h = bp.skill ? '<div class="row" style="margin-bottom:8px"><button class="btn sm" data-bp="addSkill">Add a random question from “' + esc(skillName(bp.skill)) + '”</button><span class="muted">uses the Standard level, new numbers in each version</span></div>' : '';
+  h += '<div class="muted" style="margin-bottom:6px">' + rows.length + ' question type' + (rows.length === 1 ? '' : 's') + ' · the numbers below are just one example; each version gets its own numbers.</div>';
+  h += rows.slice(0, bp.n).map((t) => {
+    const g = E.generate(t, 'bp' + (bp.ex[t.id] || 0));
+    return '<div class="bprow"><div class="muted" style="font-size:12px">' + esc(sn[t.skill].name) + ' · ' + esc(BT_NAME[t.tier]) + '</div><div class="bprev">' + rich(g.prompt) + graphsHTML(g.graphs) + '</div><div class="muted" style="font-size:12.5px">Answer: ' + kx(g.answer) + '</div><div class="row" style="margin-top:4px;gap:6px"><button class="btn sm pri" data-bp="add" data-id="' + esc(t.id) + '">Add this question</button><button class="btn sm" data-bp="ex" data-id="' + esc(t.id) + '">Another example</button></div></div>';
+  }).join('') + (rows.length > bp.n ? '<div style="text-align:center;margin:8px"><button class="btn" data-bp="more">Show more (' + (rows.length - bp.n) + ' left)</button></div>' : '') + (!rows.length ? '<p class="muted">No questions match.</p>' : '');
+  box.innerHTML = h;
+}
+document.addEventListener('input', (e) => { if (e.target.id === 'bpQ') { bp.q = e.target.value; bp.n = 20; updateBP(); } });
+document.addEventListener('change', (e) => {
+  const id = e.target.id;
+  if (id === 'bpU') { bp.unit = e.target.value; bp.skill = ''; bp.n = 20; drawBP(); }
+  if (id === 'bpS') { bp.skill = e.target.value; bp.n = 20; updateBP(); }
+  if (id === 'bpT') { bp.tier = e.target.value; bp.n = 20; updateBP(); }
+  if (e.target.dataset && e.target.dataset.ex) { state.ui.exp = state.ui.exp || {}; state.ui.exp[e.target.dataset.ex] = e.target.checked; save(); }
+});
+document.addEventListener('click', (e) => {
+  const x = e.target.closest('[data-bp]'); if (!x) return;
+  const k = x.dataset.bp, b = curBuild(); if (!b) return;
+  if (k === 'done') { $('#dlg').close(); return; }
+  if (k === 'add') { const t = findTpl(x.dataset.id); addSlot(b, { skill:t.skill, tiers:[t.tier], tplId:t.id }); bp.added++; save(); updateBP(); toast('Added'); }
+  if (k === 'addSkill') { addSlot(b, { skill:bp.skill }); bp.added++; save(); updateBP(); toast('Added'); }
+  if (k === 'ex') { bp.ex[x.dataset.id] = (bp.ex[x.dataset.id] || 0) + 1; updateBP(); }
+  if (k === 'more') { bp.n += 20; updateBP(); }
+});
+/* --- export --- */
+function rasterize(g){
+  return new Promise((res, rej) => {
+    const svg = ReteachGraphs.svg(g).replace('<svg ', '<svg width="720" height="720" '), img = new Image(), cap = g.label ? 70 : 0;
+    img.onload = () => {
+      const c = document.createElement('canvas'); c.width = 720; c.height = 720 + cap; const x = c.getContext('2d');
+      x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, 720, 720);
+      if (cap) { x.fillStyle = '#000'; x.font = 'bold 40px Helvetica,Arial,sans-serif'; x.textAlign = 'center'; x.fillText(g.label, 360, 720 + 48); }
+      c.toBlob((bl) => bl.arrayBuffer().then((ab) => res({ bytes:new Uint8Array(ab), w:c.width, h:c.height })), 'image/png');
+    };
+    img.onerror = () => rej(new Error('Could not draw a graph')); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+function retestJson(b){ return JSON.stringify({ type:'reteach-test', test:{ id:uid(), name:b.name, setCode:uid().slice(0, 4).toUpperCase(), items:b.slots.map((s, i) => ({ n:String(i + 1), skill:s.skill })), classes:[] } }, null, 2); }
+function openExport(){
+  const o = Object.assign({ word:true, latex:true, retest:true, key:true }, state.ui.exp || {});
+  const c = (k, t, sub) => '<label style="display:block;margin:6px 0"><input type="checkbox" data-ex="' + k + '"' + (o[k] ? ' checked' : '') + '> <b>' + t + '</b><br><span class="muted" style="margin-left:22px">' + sub + '</span></label>';
+  $('#dlg').innerHTML = '<div class="dlg" style="width:min(560px,94vw)"><h2 style="margin-top:0">Export “' + esc(curBuild().name) + '”</h2>' +
+    c('word', 'Word (.docx)', 'Editable equations (Insert ▸ Equation), graphs as pictures. One file per version.') + c('latex', 'LaTeX (exam class)', '.tex files with answer spaces and a grading sheet at the back; graphs in a figures folder.') + c('retest', 'Reteach test file', 'Load it on tab 1 (Import) to mark misses and print practice sheets.') + c('key', 'Include answer keys', 'A separate key file for each version in Word and LaTeX.') +
+    '<div class="row" style="margin-top:12px"><button class="btn pri" data-bx="go">Download .zip</button><button class="btn" data-bx="close">Close</button><span class="muted" id="bxMsg"></span></div><p class="muted">For a PDF, use “Print test / save as PDF” instead.</p></div>';
+  const d = $('#dlg'); if (!d.open) d.showModal();
+}
+document.addEventListener('click', async (e) => {
+  const x = e.target.closest('[data-bx]'); if (!x) return;
+  if (x.dataset.bx === 'close') { $('#dlg').close(); return; }
+  const b = curBuild(), o = Object.assign({ word:true, latex:true, retest:true, key:true }, state.ui.exp || {}), msg = $('#bxMsg');
+  if (!(o.word || o.latex || o.retest)) { msg.textContent = 'Tick at least one format.'; return; }
+  try {
+    msg.textContent = 'Building…'; const doc = buildDoc(b), imgs = {};
+    if (o.word || o.latex) for (const v of doc.versions) for (const q of v.questions) for (let gi = 0; gi < (q.graphs || []).length; gi++) imgs[XP.imgKey(v, q, gi)] = await rasterize(q.graphs[gi]);
+    const warns = []; const bytes = XP.exportAll(doc, imgs, o, retestJson(b), (m) => warns.push(m));
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([bytes], { type:'application/zip' })); a.download = XP.safe(b.name) + '.zip'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    msg.textContent = 'Downloaded.' + (warns.length ? ' (Some symbols may need a look in Word.)' : '');
+  } catch (err) { msg.textContent = 'Export failed: ' + (err && err.message || err); }
+});
+Object.assign(A, {
+  newBuild(){ const n = prompt('Name of the test (for example “Unit 4 Test”):'); if (!n) return; state.builds = state.builds || []; const b = newBuildObj(n.trim()); state.builds.push(b); state.ui.buildId = b.id; save(); render(); },
+  dupBuild(){ const b = clone(curBuild()); b.id = uid(); b.name += ' (copy)'; b.slots.forEach((s) => { s.id = uid(); }); state.builds.push(b); state.ui.buildId = b.id; save(); render(); },
+  delBuild(){ if (!confirm('Delete this test?')) return; state.builds = state.builds.filter((b) => b.id !== state.ui.buildId); state.ui.buildId = null; save(); render(); },
+  bNewNumbers(){ curBuild().seed = uid().slice(0, 4).toUpperCase(); curBuild().slots.forEach((s) => { s.reroll = 0; }); save(); render(); },
+  bPicker(){ openBP(); },
+  bAddSkill(){ const v = $('#bSkill').value; if (!v) return toast('Choose a skill first'); addSlot(curBuild(), { skill:v }); save(); render(); },
+  bFromTest(){ const t = state.tests.find((x) => x.id === $('#bTest').value); if (!t) return; t.items.filter((i) => i.skill).forEach((i) => addSlot(curBuild(), { skill:i.skill })); save(); render(); },
+  bUp(b){ const s = curBuild().slots, i = +b.dataset.i; [s[i - 1], s[i]] = [s[i], s[i - 1]]; save(); render(); },
+  bDown(b){ const s = curBuild().slots, i = +b.dataset.i; [s[i + 1], s[i]] = [s[i], s[i + 1]]; save(); render(); },
+  bDel(b){ curBuild().slots.splice(+b.dataset.i, 1); save(); render(); },
+  bReroll(b){ const s = curBuild().slots[+b.dataset.i]; s.reroll = (s.reroll || 0) + 1; save(); render(); },
+  bAllType(b){ const t = b.dataset.t; curBuild().slots.forEach((s) => { s.type = t; if (t === 'mc' && s.pts === 4) s.pts = 2; if (t === 'free' && s.pts === 2) s.pts = 4; delete s.space; }); save(); render(); },
+  bNewChoices(b){ const s = curBuild().slots[+b.dataset.i]; s.mcRe = (s.mcRe || 0) + 1; save(); render(); },
+  bUnpin(b){ const s = curBuild().slots[+b.dataset.i]; delete s.tplId; if (!s.tiers.length) s.tiers = ['parallel']; save(); render(); },
+  bExport(){ openExport(); },
+  bMakeRetest(){ const b = curBuild(), t = { id:uid(), name:b.name, setCode:uid().slice(0, 4).toUpperCase(), items:b.slots.map((s, i) => ({ n:String(i + 1), skill:s.skill })), classes:[] }; state.tests.push(t); state.ui.testId = t.id; save(); toast('Reteach test “' + b.name + '” created — find it on tab 1'); render(); }
+});
+Object.assign(C, {
+  pickBuild(el){ state.ui.buildId = el.value; },
+  bver(el){ state.ui.bver = +el.value; },
+  bField(el){ const b = curBuild(), f = el.dataset.f; b[f] = el.type === 'checkbox' ? el.checked : el.dataset.num ? +el.value : (f === 'name' && !el.value.trim() ? b[f] : el.value); },
+  bTier(el){ const s = curBuild().slots[+el.dataset.i], t = el.dataset.t, k = s.tiers.indexOf(t); if (el.checked && k < 0) s.tiers.push(t); if (!el.checked && k >= 0 && s.tiers.length > 1) s.tiers.splice(k, 1); },
+  bSlot(el){ const s = curBuild().slots[+el.dataset.i]; if (el.dataset.f === 'type') { s.type = el.value; delete s.space; if (el.value === 'mc' && s.pts === 4) s.pts = 2; if (el.value === 'free' && s.pts === 2) s.pts = 4; return; } const v = parseFloat(el.value); if (isNaN(v) || v < 0) return; s[el.dataset.f] = v; }
+});
 
 /* ---------------- start ---------------- */
 function boot(){

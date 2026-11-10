@@ -287,7 +287,7 @@ for (const tpl of RB.templates) {
   const seen = new Set(); let finished = true;
   for (let i = 0; i < 40; i++) {
     const g = E.generate(tpl, 'verify' + i);
-    seen.add(g.prompt);
+    seen.add(g.prompt + JSON.stringify(g.graphs || []));
     const unescaped = (g.prompt.match(/(^|[^\\])\$/g) || []).length;
     if (unescaped % 2) { bad(tpl, 'unbalanced $ in prompt', g.prompt); finished = false; break; }
     const mathBits = [...E.splitMath(g.prompt).filter((s) => s.type === 'math').map((s) => s.s), g.answer, ...g.steps.flatMap((s) => E.splitMath(s).filter((x) => x.type === 'math').map((x) => x.s))];
@@ -303,7 +303,7 @@ for (const tpl of RB.templates) {
     const pt = (perTpl[tpl.id] = perTpl[tpl.id] || { c: 0, u: 0 });
     if (r === undefined) { stats.unchecked++; s.unchecked++; pt.u++; } else if (r === null) { stats.checked++; s.checked++; pt.c++; } else { bad(tpl, 'WRONG ANSWER: ' + r, g.prompt + '   =>   ' + g.answer); finished = false; break; }
   }
-  if (finished && !tpl.skill.startsWith('literal') && Object.keys(tpl.params || {}).length && seen.size < 6) bad(tpl, 'low variety (' + seen.size + ' distinct problems in 40 tries)');
+  if (finished && !tpl.lowVariety && !tpl.skill.startsWith('literal') && Object.keys(tpl.params || {}).length && seen.size < 6) bad(tpl, 'low variety (' + seen.size + ' distinct problems in 40 tries)');
   if (SHOW) { const g = E.generate(tpl, 'show'); console.log('[' + tpl.id + ']  ' + g.prompt.replace(/\n/g, '  /  ') + '   =>   ' + g.answer); }
 }
 

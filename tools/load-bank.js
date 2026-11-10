@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 module.exports = function loadBank() {
   const dir = path.join(__dirname, '..', 'bank');
-  const files = ['_dsl.js', ...fs.readdirSync(dir).filter((f) => f.endsWith('.js') && f !== '_dsl.js').sort()];
+  const files = ['dsl.js', ...fs.readdirSync(dir).filter((f) => f.endsWith('.js') && f !== 'dsl.js').sort()];
   const sandbox = { console };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);

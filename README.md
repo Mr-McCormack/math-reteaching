@@ -58,3 +58,21 @@ Tab **4 · DeltaMath** helps you build DeltaMath assignments from the same misse
 - **Print sheets:** tick “Add ‘assign on DeltaMath’ line” to print the item's DeltaMath skills under its practice problems (off by default).
 
 Files: `deltamath/skills.js` (inventory), `deltamath/map.js` (suggested matches), `deltamath/dm.js` (grouping logic).
+
+## Test builder tab
+
+Build a full test from the same question bank (tab **Test builder**).
+
+- **Add questions** three ways: search the bank (every result shows a worked example and its answer before you add it; use *Another example* to see different numbers), pick a skill, or pull one question per item from a Reteach test.
+- A question added from the search is "pinned" to that exact question type; one added by skill is drawn from any question of that skill at the levels you tick (Warm-up / Standard / Challenge). *Different numbers* re-rolls a single question.
+- **Versions A–D** use the same skills with different numbers (optionally a different order). Same title + same numbers code = the same test every time.
+- Graph questions print and export with their graphs.
+- **Print test / save as PDF** and **Print answer keys** use the browser's print dialog.
+- **Export…** downloads one .zip with any of: Word (.docx, with editable Word equations), LaTeX (`exam` class, answer spaces, grading sheet at the back, graphs in `figures/`), and a Reteach test file you can import on tab 1.
+- **Make a Reteach test from this** creates the matching test on tab 1 so you can mark misses and print practice sheets after you give it.
+
+Files: `builder/builder.js` (picks the questions), `builder/export.js` (zip, LaTeX, Word), tests in `tools/test-export.js` and `tools/smoke-builder.js`.
+
+### Multiple choice
+
+Each question in the Test builder can be **Free response** or **Multiple choice** (set "New questions are…" before adding, change any question's Format, or use *Make all multiple choice*). Wrong choices are made automatically from common mistakes (sign errors, flipped fractions, off-by-one numbers, opposite words, wrong quadrant or angle, answers from other numbers of the same question). The correct choice is marked ✓ in the builder; *Different choices* re-rolls just the wrong ones, and A/B/C/D versions each get their own numbers and choices. Questions that can't sensibly be multiple choice (graph it, explain it, very long answers) stay free response and say so. Always skim the choices once before printing. Logic: `builder/choices.js`.

@@ -109,6 +109,7 @@
   const HM = { R: { p: '1..8', say: r`\text{right }{{h:abs}}`, why: 'positive' , dir: 'right' }, L: { p: '-8..-1', say: r`\text{left }{{h:abs}}`, why: 'negative', dir: 'left' } };
   const KM = { U: { p: '1..8', say: r`\text{up }{{k:abs}}`, dir: 'up' }, D: { p: '-8..-1', say: r`\text{down }{{k:abs}}`, dir: 'down' } };
 
+  const GA = { stretch: { a: '2..3' }, reflect: { a: '-3..-2' }, flip: { a: '-1' } }; // simpler numbers when the student reads them off a graph
   function build(tier, at, hm, km, o) {
     o = o || {};
     const A = AT[at], H = hm && HM[hm], K = km && KM[km];
@@ -125,8 +126,11 @@
       if (H) steps.push(r`$ h = {{h}} $ is ${H.why}, so the graph shifts ${H.dir} {{h:abs}} unit(s) (watch the sign: $ (x - h) $ with $ h = {{h}} $).`.replace('{{h:abs}}', '$ {{h:abs}} $'));
       if (K) steps.push(r`$ k = {{k}} $ shifts the graph ${K.dir} $ {{k:abs}} $ unit(s).`);
     }
-    T('qt', tier, o.prompt ? o.prompt(fx) : r`Describe the transformations of $ f(x) = ${fx} $ from the parent function $ y = x^2 $.`, answer,
-      Object.assign({ params, derived }, steps.length ? { steps } : {}));
+    if (o.graph) Object.assign(params, GA[at] || {});
+    const gr = o.graph ? { graphs: [{ curves: [{ type: 'quad', a: 1, h: 0, k: 0, style: 'dashed' }, { type: 'quad', a: at === 'none' ? 1 : 'a', h: H ? 'h' : 0, k: K ? 'k' : 0 }] }] } : {};
+    const gprompt = r`The solid graph is a transformation of the parent function $ y = x^2 $ (the dashed graph). Describe the transformations.`;
+    T('qt', tier, o.graph ? gprompt : o.prompt ? o.prompt(fx) : r`Describe the transformations of $ f(x) = ${fx} $ from the parent function $ y = x^2 $.`, answer,
+      Object.assign({ params, derived }, steps.length ? { steps } : {}, gr));
   }
   const combos = [['R', 'U'], ['R', 'D'], ['L', 'U'], ['L', 'D']];
   combos.forEach(([h, k]) => build('worked', 'stretch', h, k, { steps: true }));
@@ -142,6 +146,9 @@
   // parallel: the quiz's fill-in-the-blank and multiple-choice items as free response
   ['stretch', 'compress', 'reflect'].forEach((a) => combos.forEach(([h, k]) => build('parallel', a, h, k)));
   ['stretch', 'compress'].forEach((a) => build('parallel', a, null, 'U'));
+  // the same skills, but read from a graph
+  [['none', null, 'U'], ['none', null, 'D'], ['none', 'R', null], ['none', 'L', null]].forEach(([a, h, k]) => build('easier', a, h, k, { graph: true }));
+  ['stretch', 'reflect', 'flip'].forEach((a) => combos.forEach(([h, k]) => build('parallel', a, h, k, { graph: true })));
   // reflecting across the x-axis (quiz #20)
   const refl = (tier, prompt, ans, extra) => T('qt', tier, prompt, ans, Object.assign(J({ a: '1..5', h: '-6..6 !0', k: '-8..8 !0' }, { nh: '0-h', na: '0-a', nk: '0-k', nh2: 'h' }), extra || {}));
   refl('parallel', r`If $ f(x) = ${VF} $ is reflected across the $x$-axis to make $ g(x) $, write the equation of $ g(x) $.`, r`g(x) = {{na:coef}}(x{{nh:sign}})^2{{nk:sign}}`);
